@@ -1,5 +1,8 @@
 BasedOnStyle: WebKit
 
+# Possible to force space before namespace end (for comment)?
+# I actually hate clang
+
 AlignAfterOpenBracket: AlwaysBreak
 AllowShortEnumsOnASingleLine: false
 AllowShortBlocksOnASingleLine: Never
@@ -16,6 +19,7 @@ FixNamespaceComments: true
 IndentPPDirectives: AfterHash
 InsertNewlineAtEOF: true
 LineEnding: DeriveCRLF
+NamespaceIndentation: All
 PenaltyBreakBeforeFirstCallParameter: 0
 SpaceBeforeCpp11BracedList: false
 SpaceInEmptyBlock: false

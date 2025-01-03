@@ -19,14 +19,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Diagnostics.cpp" />
     <ClCompile Include="src\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\.clang-format" />
+    <None Include="..\.clang-format.nothanks" />
     <None Include="notes\Plan.md" />
     <None Include="notes\Setup.md" />
     <None Include="notes\Snippets.md" />
     <None Include="scripts\PreBuild.bat" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Diagnostics.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
