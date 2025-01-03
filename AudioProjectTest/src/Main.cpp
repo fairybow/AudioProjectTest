@@ -74,11 +74,12 @@ static std::vector<int16_t> toSamples(std::ifstream& rawAudio)
     if ((file_size % single_sample_size) != 0)
         THROW_RTE("Invalid or corrupted raw audio file.");
 
-    // Create a vector to hold the samples, sized to the sample count
+    // Create a vector to hold the samples, sized to the sample count.
     auto sample_count = file_size / single_sample_size;
     std::vector<int16_t> samples(sample_count);
 
-    // Read the file into the vector
+    // Read the file into the vector.
+    // Note to self:
     // Using reinterpret_cast allows us to read the binary data directly into a
     // `std::vector<int16_t>` without manually combining bytes. Without it, we'd
     // have to read the data as `char` or `uint8_t` and then manually combine
