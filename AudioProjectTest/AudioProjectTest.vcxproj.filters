@@ -38,5 +38,6 @@
     <None Include="notes\Snippets.md">
       <Filter>Notes</Filter>
     </None>
+    <None Include="..\.clang-format" />
   </ItemGroup>
 </Project>

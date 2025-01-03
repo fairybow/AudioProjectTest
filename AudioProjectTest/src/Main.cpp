@@ -1,7 +1,9 @@
 #include <filesystem>
 #include <format>
 #include <iostream>
+#include <source_location>
 #include <stdexcept>
+#include <string>
 
 #include "fftw3.h"
 
@@ -14,22 +16,35 @@
 // https://www.fftw.org/index.html
 
 // https://en.wikipedia.org/wiki/Voice_frequency
-//constexpr auto VOICE_HZ_MIN = 300;
-//constexpr auto VOICE_HZ_MAX = 3400;
+// constexpr auto VOICE_HZ_MIN = 300;
+// constexpr auto VOICE_HZ_MAX = 3400;
 
-//static void die(const char* function, const char* what)
-//#define DIE(...) die(__FUNCTION__, __LINE__, __VA_ARGS__) // should at least be one arg ("what" message), so no ##
+#define THROW_RTE(message, ...)                                                \
+    throwRte(std::source_location::current(), message, ##__VA_ARGS__)
 
-static void throwRte(const char* what)
+static void throwRte(const std::source_location& location, const char* message)
 {
-    throw std::runtime_error(what);
+    constexpr auto notation = "{}:{} ({}): {}";
+
+    auto what = std::format(
+        notation,
+        location.file_name(),
+        location.line(),
+        location.function_name(),
+        message);
+
+    throw std::runtime_error(what.c_str());
 }
 
 template <typename... ArgsT>
-static void throwRteFormat(const char* format, ArgsT&&... args)
+static void throwRte(
+    const std::source_location& location,
+    const char* messageFormat,
+    ArgsT&&... args)
 {
-    auto what = std::vformat(format, std::make_format_args(args...));
-    throwRte(what.c_str());
+    auto formatted_message =
+        std::vformat(messageFormat, std::make_format_args(args...));
+    throwRte(file, line, function, formatted_message.c_str());
 }
 
 static void read(const std::filesystem::path& audioFile)
@@ -37,17 +52,18 @@ static void read(const std::filesystem::path& audioFile)
     //...
 }
 
-// Read an audio file at path `in` and return an analysis as string (or throw an exception)
+// Read an audio file at path `in` and return an analysis as string (or throw an
+// exception)
 static std::string analyze(const std::filesystem::path& in)
 {
     if (!std::filesystem::exists(in))
     {
-        throwRteFormat("\"{}\" does not exist.", in.string());
+        THROW_RTE("\"{}\" does not exist.", in.string());
     }
 
     if (!std::filesystem::is_regular_file(in))
     {
-        throwRteFormat("\"{}\" is not regular file.", in.string());
+        THROW_RTE("\"{}\" is not regular file.", in.string());
     }
 
     // Read audio file at path using libsndfile
@@ -84,3 +100,5 @@ int main(int argc, char* argv[])
         }
     }*/
 }
+
+#undef THROW_RTE

@@ -22,6 +22,7 @@
     <ClCompile Include="src\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\.clang-format" />
     <None Include="notes\Plan.md" />
     <None Include="notes\Setup.md" />
     <None Include="notes\Snippets.md" />
