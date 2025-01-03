@@ -25,18 +25,20 @@
 
 // Debug -----------------------------------------------------------------------
 
+// Note: std::source_loc kinda sucks.
 #define THROW_RTE(message, ...)                                                \
     throwRte(std::source_location::current(), message, ##__VA_ARGS__)
 
 static void throwRte(const std::source_location& location, const char* message)
 {
-    constexpr auto notation = "{}:{} ({}): {}";
+    constexpr auto notation = "{}:{}: {}";
+
+    auto file_name = std::filesystem::path(location.file_name()).filename();
 
     auto what = std::format(
         notation,
-        location.file_name(),
+        file_name.string(),
         location.line(),
-        location.function_name(),
         message);
 
     throw std::runtime_error(what.c_str());
@@ -51,7 +53,7 @@ static void throwRte(
     auto formatted_message =
         std::vformat(messageFormat, std::make_format_args(args...));
 
-    throwRte(file, line, function, formatted_message.c_str());
+    throwRte(location, formatted_message.c_str());
 }
 
 // ----------------------------------------------------------------------------
@@ -96,7 +98,7 @@ static std::string analyze(const std::filesystem::path& inFile)
         THROW_RTE("\"{}\" does not exist.", inFile.string());
 
     if (!std::filesystem::is_regular_file(inFile))
-        THROW_RTE("\"{}\" is not regular file.", inFile.string());
+        THROW_RTE("\"{}\" is not a regular file.", inFile.string());
 
     std::ifstream file(inFile, std::ios::binary);
 
