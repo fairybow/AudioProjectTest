@@ -89,8 +89,6 @@ static std::vector<int16_t> toSamples(std::ifstream& rawAudio)
     return samples;
 }
 
-// Read an audio file at path `in` and return an analysis as string (or throw an
-// exception)
 static std::string analyze(const std::filesystem::path& inFile)
 {
     if (!std::filesystem::exists(inFile))
