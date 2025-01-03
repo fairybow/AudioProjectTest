@@ -27,6 +27,9 @@
     <ClCompile Include="src\Diagnostics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Fftw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="scripts\PreBuild.bat">
@@ -45,6 +48,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Diagnostics.h">
+      <Filter>Source Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Fftw.h">
       <Filter>Source Files\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
