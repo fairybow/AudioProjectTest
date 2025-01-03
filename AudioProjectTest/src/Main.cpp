@@ -1,6 +1,7 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <ios>
 #include <iostream>
 #include <source_location>
 #include <stdexcept>
@@ -55,11 +56,37 @@ static void throwRte(
 
 // ----------------------------------------------------------------------------
 
-static std::vector<int16_t> toSamples(const std::ifstream& rawAudio)
+static std::streamsize sizeOf(std::ifstream& stream)
 {
-    //...
+    stream.seekg(0, std::ios::end);
+    std::streamsize size = stream.tellg();
+    stream.seekg(0, std::ios::beg);
 
-    return {};
+    return size;
+}
+
+static std::vector<int16_t> toSamples(std::ifstream& rawAudio)
+{
+    constexpr auto single_sample_size = sizeof(int16_t);
+    auto file_size = sizeOf(rawAudio);
+
+    // Ensure the file size is valid for 16-bit samples (2 bytes).
+    if ((file_size % single_sample_size) != 0)
+        THROW_RTE("Invalid or corrupted raw audio file.");
+
+    // Create a vector to hold the samples, sized to the sample count
+    auto sample_count = file_size / single_sample_size;
+    std::vector<int16_t> samples(sample_count);
+
+    // Read the file into the vector
+    // Using reinterpret_cast allows us to read the binary data directly into a
+    // `std::vector<int16_t>` without manually combining bytes. Without it, we'd
+    // have to read the data as `char` or `uint8_t` and then manually combine
+    // every two bytes into a single `int16_t`.
+    if (!rawAudio.read(reinterpret_cast<char*>(samples.data()), file_size))
+        THROW_RTE("Failed to read raw audio data.");
+
+    return samples;
 }
 
 // Read an audio file at path `in` and return an analysis as string (or throw an
@@ -74,8 +101,7 @@ static std::string analyze(const std::filesystem::path& inFile)
 
     std::ifstream file(inFile, std::ios::binary);
 
-    if (!file)
-        THROW_RTE("Unable to open file at \"{}\"", inFile.string());
+    if (!file) THROW_RTE("Unable to open file at \"{}\"", inFile.string());
 
     auto samples = toSamples(file);
 
