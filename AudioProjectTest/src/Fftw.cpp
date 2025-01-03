@@ -39,16 +39,20 @@ static std::streamsize _sizeOf(std::ifstream& stream)
     return size;
 }
 
-static std::vector<double> _toPreparedSamples(const std::vector<int16_t>& rawSamples)
+static std::vector<float> _toPreparedSamples(const std::vector<int16_t>& rawSamples)
 {
     auto fft_size = _fftSize(rawSamples);
-    std::vector<double> prepared_samples(fft_size);
+    std::vector<float> prepared_samples(fft_size);
 
     // Convert and normalize raw samples
     for (size_t i = 0; i < fft_size; ++i)
-        prepared_samples[i] = static_cast<double>(rawSamples[i]) / std::numeric_limits<int16_t>::max();
+        prepared_samples[i] = static_cast<float>(rawSamples[i]) / std::numeric_limits<int16_t>::max();
 
-    // Apply a window function (e.g., Hann window) to reduce spectral leakage
+    /*// Apply a window function (e.g., Hann window) to reduce spectral leakage
+    for (size_t i = 0; i < fft_size; ++i)
+    {
+        prepared_samples[i] *= 0.5f * (1.0f - std::cos(2.0f * M_PI * i / (fft_size - 1)));
+    }*/
 
     return prepared_samples;
 }
@@ -99,6 +103,8 @@ namespace Fftw
         auto prepared_samples = _toPreparedSamples(raw_samples);
 
         // Perform FFTA using FFTW
+
+        // (Use the fftwf api, not fftw)
 
         // Temp ---------
         return {};

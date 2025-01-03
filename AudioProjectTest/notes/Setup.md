@@ -1,8 +1,10 @@
-# General Setup
+# Setup
 
-## C++ Version
+## VS Configuration Properties
 
-Configuration Properties > General > C++ Language Standard
+### General
+
+C++ Language Standard
 
 ```
 ISO C++20 Standard (/std:c++20)
@@ -10,35 +12,41 @@ ISO C++20 Standard (/std:c++20)
 
 (Because we're using `std::filesystem` and `std::format`.)
 
-## Includes
+### C/C++
 
-Configuration Properties > C/C++ > General > Additional Include Directories
-
-Note: libsndfile's `sndfile.hh` includes the C header, but we need to help VS find it.
+General > Additional Include Directories
 
 ```
 $(ProjectDir)external\FFTW;%(AdditionalIncludeDirectories)
 ```
 
-## Linking
+### Linker
 
-Configuration Properties > Linker > General > Additional Library Directories
+General > Additional Library Directories
 
 ```
 $(ProjectDir)external\FFTW;%(AdditionalLibraryDirectories)
 ```
 
-Configuration Properties > Linker > Input > Additional Dependencies
+Input > Additional Dependencies
 
 ```
-libfftw3-3.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)
+libfftw3f-3.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)
+```
+
+### Build Events
+
+Pre-Build Event > Command Line
+
+```
+call "$(ProjectDir)scripts\PreBuild.bat" "$(ProjectDir)external\" "$(TargetDir)"
 ```
 
 ## FFTW Extra Setup
 
-FFTW has 3 DLLs of different precision:
-- libfftw3-3 (single)
-- libfftw3f-3 (double)
+FFTW has 3 DLLs of different precision (in order):
+- libfftw3f-3 (float)
+- libfftw3-3 (double) (default)
 - libfftw3l-3 (long double)
 
 Extract entire contents of FFTW's DLL download for x64 machines to `external/FFTW`.

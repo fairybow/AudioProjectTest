@@ -4,6 +4,7 @@
 #include <string>
 
 // https://www.fftw.org/index.html
+// We are using FFTW's single (float) precision, for speed
 
 namespace Fftw
 {
