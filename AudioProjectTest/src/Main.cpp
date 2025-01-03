@@ -14,6 +14,8 @@
 // Potentially build the library into the program instead.
 // Determine library type and implement later. For now, just make console app.
 // It's also possible we only need console app.
+// Potentially do not throw (just notify) and allow for reading of subsequent
+// audio files, if provided.
 // Separate methods out into ns/classes, obvs.
 
 // https://www.fftw.org/index.html
@@ -100,7 +102,6 @@ static std::string analyze(const std::filesystem::path& inFile)
         THROW_RTE("\"{}\" is not a regular file.", inFile.string());
 
     std::ifstream file(inFile, std::ios::binary);
-
     if (!file) THROW_RTE("Unable to open file at \"{}\"", inFile.string());
 
     auto samples = toSamples(file);
