@@ -1,9 +1,11 @@
 #include <filesystem>
 #include <format>
+#include <fstream>
 #include <iostream>
 #include <source_location>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "fftw3.h"
 
@@ -53,9 +55,11 @@ static void throwRte(
 
 // ----------------------------------------------------------------------------
 
-static void read(const std::filesystem::path& audioFile)
+static std::vector<int16_t> toSamples(const std::ifstream& rawAudio)
 {
     //...
+
+    return {};
 }
 
 // Read an audio file at path `in` and return an analysis as string (or throw an
@@ -63,14 +67,17 @@ static void read(const std::filesystem::path& audioFile)
 static std::string analyze(const std::filesystem::path& inFile)
 {
     if (!std::filesystem::exists(inFile))
-    {
         THROW_RTE("\"{}\" does not exist.", inFile.string());
-    }
 
     if (!std::filesystem::is_regular_file(inFile))
-    {
         THROW_RTE("\"{}\" is not regular file.", inFile.string());
-    }
+
+    std::ifstream file(inFile, std::ios::binary);
+
+    if (!file)
+        THROW_RTE("Unable to open file at \"{}\"", inFile.string());
+
+    auto samples = toSamples(file);
 
     // Read audio file at path
     // Get component frequencies using FFTW
