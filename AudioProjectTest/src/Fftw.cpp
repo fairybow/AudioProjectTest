@@ -3,7 +3,6 @@
 
 #include "fftw3.h"
 
-#include <cmath>
 #include <fstream>
 #include <ios>
 #include <type_traits>
