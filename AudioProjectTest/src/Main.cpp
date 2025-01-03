@@ -32,14 +32,13 @@
 static void throwRte(const std::source_location& location, const char* message)
 {
     constexpr auto notation = "{}:{}: {}";
+    // constexpr auto notation = "{}:{} ({}): {}"; // For unqualified func name
+    // as 3rd arg (so, not with std::source_loc)
 
     auto file_name = std::filesystem::path(location.file_name()).filename();
 
-    auto what = std::format(
-        notation,
-        file_name.string(),
-        location.line(),
-        message);
+    auto what =
+        std::format(notation, file_name.string(), location.line(), message);
 
     throw std::runtime_error(what.c_str());
 }
