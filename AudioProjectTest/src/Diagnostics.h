@@ -2,6 +2,10 @@
 
 #include <format>
 
+// Separate logging/messaging namesapce
+// Include it for methods to print location
+// Potentially remove a lot or all (esp formatting) if it harms speed
+
 // `std::source_location` doesn't allow us to obtain an unqualified function
 // signature like __FUNCTION__. (May need to adjust for platforms.)
 #define DX_THROW_RTE(message, ...)      \
