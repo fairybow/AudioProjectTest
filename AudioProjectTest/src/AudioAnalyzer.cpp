@@ -1,4 +1,7 @@
 #include "AudioAnalyzer.h"
+#include "Diagnostics.h"
+
+#include "fftw3.h"
 
 AudioAnalyzer::AudioAnalyzer()
 {

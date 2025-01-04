@@ -67,9 +67,6 @@
     <ClInclude Include="src\AudioAnalyzer.h">
       <Filter>Source Files\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="old\FftwOLD.h">
-      <Filter>Old</Filter>
-    </ClInclude>
     <ClInclude Include="src\VoiceDetector.h">
       <Filter>Source Files\Header Files</Filter>
     </ClInclude>

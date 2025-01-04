@@ -34,7 +34,6 @@
     <ClCompile Include="src\AudioAnalyzer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="old\FftwOLD.h" />
     <ClInclude Include="src\Diagnostics.h" />
     <ClInclude Include="src\VoiceDetector.h" />
     <ClInclude Include="src\AudioAnalyzer.h" />
