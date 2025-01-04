@@ -35,6 +35,7 @@ int main(int argc, char* argv[])
     {
         try
         {
+            // IMPORTANT: Definitely not this. We need to batch for speed.
             auto analysis = Fftw::analyze(argv[i]);
             std::cout << interpret(analysis); // (Or something)
         }
