@@ -19,20 +19,25 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Diagnostics.cpp" />
-    <ClCompile Include="src\Fftw.cpp" />
-    <ClCompile Include="src\Main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\.clang-format.nothanks" />
-    <None Include="notes\Plan.md" />
+    <None Include="notes\Notes.md" />
+    <None Include="notes\Todo.md" />
     <None Include="notes\Setup.md" />
     <None Include="notes\Snippets.md" />
+    <None Include="old\.clang-format.nothanks" />
     <None Include="scripts\PreBuild.bat" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="old\FftwOLD.cpp" />
+    <ClCompile Include="src\Diagnostics.cpp" />
+    <ClCompile Include="src\VoiceDetector.cpp" />
+    <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\AudioAnalyzer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="old\FftwOLD.h" />
     <ClInclude Include="src\Diagnostics.h" />
-    <ClInclude Include="src\Fftw.h" />
+    <ClInclude Include="src\VoiceDetector.h" />
+    <ClInclude Include="src\AudioAnalyzer.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

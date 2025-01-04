@@ -19,23 +19,15 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\Main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Diagnostics.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Fftw.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <Filter Include="Old">
+      <UniqueIdentifier>{92d979c0-b1f4-49b6-b3db-5e4214a5fe51}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="scripts\PreBuild.bat">
       <Filter>Scripts</Filter>
     </None>
-    <None Include="notes\Plan.md">
+    <None Include="notes\Todo.md">
       <Filter>Notes</Filter>
     </None>
     <None Include="notes\Setup.md">
@@ -44,13 +36,41 @@
     <None Include="notes\Snippets.md">
       <Filter>Notes</Filter>
     </None>
-    <None Include="..\.clang-format.nothanks" />
+    <None Include="old\.clang-format.nothanks">
+      <Filter>Old</Filter>
+    </None>
+    <None Include="notes\Notes.md">
+      <Filter>Notes</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Diagnostics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AudioAnalyzer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="old\FftwOLD.cpp">
+      <Filter>Old</Filter>
+    </ClCompile>
+    <ClCompile Include="src\VoiceDetector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Diagnostics.h">
       <Filter>Source Files\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Fftw.h">
+    <ClInclude Include="src\AudioAnalyzer.h">
+      <Filter>Source Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="old\FftwOLD.h">
+      <Filter>Old</Filter>
+    </ClInclude>
+    <ClInclude Include="src\VoiceDetector.h">
       <Filter>Source Files\Header Files</Filter>
     </ClInclude>
   </ItemGroup>

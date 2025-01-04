@@ -1,4 +1,4 @@
-#include "Diagnostics.h"
+/*#include "Diagnostics.h"
 #include "Fftw.h"
 
 #include "fftw3.h"
@@ -48,11 +48,11 @@ static std::vector<float> _toPreparedSamples(const std::vector<int16_t>& rawSamp
     for (size_t i = 0; i < fft_size; ++i)
         prepared_samples[i] = static_cast<float>(rawSamples[i]) / std::numeric_limits<int16_t>::max();
 
-    /*// Apply a window function (e.g., Hann window) to reduce spectral leakage
-    for (size_t i = 0; i < fft_size; ++i)
-    {
-        prepared_samples[i] *= 0.5f * (1.0f - std::cos(2.0f * M_PI * i / (fft_size - 1)));
-    }*/
+    // Apply a window function(e.g., Hann window) to reduce spectral leakage
+    //for (size_t i = 0; i < fft_size; ++i)
+    //{
+    //    prepared_samples[i] *= 0.5f * (1.0f - std::cos(2.0f * M_PI * i / (fft_size - 1)));
+    //}
 
     return prepared_samples;
 }
@@ -110,3 +110,4 @@ namespace Fftw
         return {};
     }
 }
+*/

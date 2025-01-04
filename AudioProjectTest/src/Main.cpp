@@ -1,28 +1,24 @@
-#include "Fftw.h"
+#include "AudioAnalyzer.h"
+#include "VoiceDetector.h"
 
+#include <filesystem>
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 
-// TODO:
-// Potentially build the library into the program instead.
-// Determine library type and implement later. For now, just make console app.
-// It's also possible we only need console app.
-// Potentially do not throw (just notify) and allow for reading of subsequent
-// audio files, if provided.
-
-// For interpreter:
-// https://en.wikipedia.org/wiki/Voice_frequency
-// (Maybe:)
-// constexpr auto VOICE_HZ_MIN = 300;
-// constexpr auto VOICE_HZ_MAX = 3400;
-
-// Provide paths to sound files
 int main(int argc, char* argv[])
 {
-    // Test:
+    // argv[0] = executable path. Additionally, we avoid repeated allocations by
+    //reserving our size and using emplace_back (vs. push_back)
+    std::vector<std::filesystem::path> audio_file_paths(argc - 1);
+
+    for (auto i = 1; i < argc; ++i)
+        audio_file_paths.emplace_back(argv[i]);
+
     try
     {
-        Fftw::analyze("C:\\Dev\\sample-audio-file-human-then-static.raw");
+        AudioAnalyzer analyzer{};
+        auto analysis = analyzer.process("C:\\Dev\\sample-audio-file-human-then-static.raw");
     }
     catch (const std::exception& ex)
     {
@@ -30,19 +26,18 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // argv[0] = executable path
-    /*for (auto i = 1; i < argc; ++i)
+    /*try
     {
-        try
-        {
-            // IMPORTANT: Definitely not this. We need to batch for speed.
-            auto analysis = Fftw::analyze(argv[i]);
-            std::cout << interpret(analysis); // (Or something)
-        }
-        catch (const std::exception& ex)
-        {
-            std::cout << ex.what();
-            return 1;
-        }
+        AudioAnalyzer analyzer{};
+        //auto analyses = analyzer.process(audio_file_paths);
+
+        VoiceDetector detector{};
+        std::cout << detector.read(analyses); // (Or something)
+        // Perhaps a hasVoice bool return for each...depends on what we need...
+    }
+    catch (const std::exception& ex)
+    {
+        std::cout << ex.what();
+        return 1;
     }*/
 }

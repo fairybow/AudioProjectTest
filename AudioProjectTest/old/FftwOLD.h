@@ -1,4 +1,4 @@
-#pragma once
+/*#pragma once
 
 #include <filesystem>
 #include <string>
@@ -13,3 +13,4 @@ namespace Fftw
     // return type TBD
     std::string analyze(const std::filesystem::path& inFile);
 }
+*/
