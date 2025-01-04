@@ -42,6 +42,9 @@
     <None Include="notes\Notes.md">
       <Filter>Notes</Filter>
     </None>
+    <None Include="old\Old.md">
+      <Filter>Old</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Diagnostics.cpp">

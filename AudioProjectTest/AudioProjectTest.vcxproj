@@ -24,6 +24,7 @@
     <None Include="notes\Setup.md" />
     <None Include="notes\Snippets.md" />
     <None Include="old\.clang-format.nothanks" />
+    <None Include="old\Old.md" />
     <None Include="scripts\PreBuild.bat" />
   </ItemGroup>
   <ItemGroup>
