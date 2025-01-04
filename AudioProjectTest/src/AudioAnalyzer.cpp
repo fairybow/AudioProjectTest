@@ -5,16 +5,18 @@
 
 AudioAnalyzer::AudioAnalyzer()
 {
+    // Load or create the wisdom file
 }
 
-std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<std::filesystem::path>& paths)
+std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<std::filesystem::path>& paths, size_t fftSize)
 {
     //...
 
     return {};
 };
 
-AudioAnalyzer::Analysis AudioAnalyzer::process(const std::filesystem::path& path)
+// Convenience overload for single process
+AudioAnalyzer::Analysis AudioAnalyzer::process(const std::filesystem::path& path, size_t fftSize)
 {
-    return process(std::vector<std::filesystem::path>{ path }).at(0);
+    return process(std::vector<std::filesystem::path>{ path }, fftSize).at(0);
 }

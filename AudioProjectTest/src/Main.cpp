@@ -8,8 +8,8 @@
 
 int main(int argc, char* argv[])
 {
-    // argv[0] = executable path. Additionally, we avoid repeated allocations by
-    //reserving our size and using emplace_back (vs. push_back)
+    // argv[0] = executable path. Note, we avoid repeated allocations by
+    // reserving our size and using emplace_back (vs. push_back)
     std::vector<std::filesystem::path> audio_file_paths(argc - 1);
 
     for (auto i = 1; i < argc; ++i)

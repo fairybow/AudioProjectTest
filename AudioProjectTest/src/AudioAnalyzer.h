@@ -23,10 +23,13 @@ public:
     AudioAnalyzer();
     virtual ~AudioAnalyzer() = default;
 
-    std::vector<Analysis> process(const std::vector<std::filesystem::path>& paths);
-    Analysis process(const std::filesystem::path& path);
+    std::vector<Analysis> process(const std::vector<std::filesystem::path>& paths, size_t fftSize = DEFAULT_FFT_SIZE);
+    Analysis process(const std::filesystem::path& path, size_t fftSize = DEFAULT_FFT_SIZE);
 
 private:
+    static constexpr auto DEFAULT_FFT_SIZE = 1024;
+
+    // We may or may not need fftSize as memvar
     // m_plan;      // Cached plan for batch analysis, for speeeeeed
     // m_wisdom;    // read from disk
 
