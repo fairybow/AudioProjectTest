@@ -1,9 +1,8 @@
 #include "AudioAnalyzer.h"
 #include "Diagnostics.h"
 
-#include "fftw3.h"
-
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -15,10 +14,20 @@ AudioAnalyzer::AudioAnalyzer()
     // Right now, this may only be necessary for different FFT sizes?
 }
 
+AudioAnalyzer::~AudioAnalyzer()
+{
+    _freeFftwPlan();
+}
+
 std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<std::filesystem::path>& inFiles, std::size_t fftSize)
 {
-    m_fftSize = fftSize;
-    _initHannWindow();
+    // m_fftSize Initializes to 0
+    if (m_fftSize != fftSize)
+    {
+        m_fftSize = fftSize;
+        _initFftwPlan();
+        _initHannWindow();
+    }
 
     auto files_size = inFiles.size();
     std::vector<Analysis> analyses(files_size);
@@ -50,6 +59,60 @@ std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<st
 AudioAnalyzer::Analysis AudioAnalyzer::process(const std::filesystem::path& inFile, std::size_t fftSize)
 {
     return process(std::vector<std::filesystem::path>{ inFile }, fftSize).at(0);
+}
+
+void AudioAnalyzer::_initFftwPlan()
+{
+    // Should we avoid freeing on the first call to this on startup?
+    _freeFftwPlan();
+
+    // Read/write from wisdom:
+    m_numFrequencyBins = (m_fftSize / 2) + 1;
+    m_fftInputBuffer = fftwf_alloc_real(m_fftSize);
+    m_fftOutputBuffer = fftwf_alloc_complex(m_numFrequencyBins);
+
+    m_fftwPlan = fftwf_plan_dft_r2c_1d
+    (
+        m_fftSize,
+        m_fftInputBuffer,
+        m_fftOutputBuffer,
+        FFTW_ESTIMATE
+    );
+}
+
+void AudioAnalyzer::_freeFftwPlan()
+{
+    if (m_fftwPlan)
+    {
+        fftwf_destroy_plan(m_fftwPlan);
+        m_fftwPlan = nullptr;
+    }
+
+    if (m_fftOutputBuffer)
+    {
+        fftwf_free(m_fftOutputBuffer);
+        m_fftOutputBuffer = nullptr;
+    }
+
+    if (m_fftInputBuffer)
+    {
+        fftwf_free(m_fftInputBuffer);
+        m_fftInputBuffer = nullptr;
+    }
+}
+
+void AudioAnalyzer::_initHannWindow()
+{
+    m_hannWindow.resize(m_fftSize);
+
+    for (std::size_t i = 0; i < m_fftSize; ++i)
+    {
+        // Calculate the cosine of the normalized angular position for index i
+        auto cosine = std::cos((2.0f * m_pi * i) / (m_fftSize - 1));
+
+        // Calculate the Hann window coefficient for index i
+        m_hannWindow[i] = 0.5f * (1.0f - cosine);
+    }
 }
 
 std::vector<float> AudioAnalyzer::_toSamples(std::ifstream& rawAudio) const
@@ -94,12 +157,18 @@ std::vector<float> AudioAnalyzer::_toSamples(std::ifstream& rawAudio) const
     return samples;
 }
 
+std::streamsize AudioAnalyzer::_sizeOf(std::ifstream& stream) const
+{
+    stream.seekg(0, std::ios::end);
+    std::streamsize size = stream.tellg();
+    stream.seekg(0, std::ios::beg);
+
+    return size;
+}
+
 AudioAnalyzer::Analysis AudioAnalyzer::_analyzeFileSamples(const std::vector<float>& fileSamples) const
 {
     // Divides into frames and perform FFT
-
-    Analysis analysis{};
-    analysis.fftSize = m_fftSize;
 
     // Setup frames
     auto hop_size = static_cast<std::size_t>(m_fftSize * m_overlapPercentage);
@@ -114,68 +183,50 @@ AudioAnalyzer::Analysis AudioAnalyzer::_analyzeFileSamples(const std::vector<flo
 
     // FFTW start:
 
-    /*fftwf_complex* fftOutput = fftwf_alloc_complex(fftSize / 2 + 1);
-    float* fftInput = fftwf_alloc_real(fftSize);
+    // Rows represent frames (time slices of the signal).
+    // Columns represent unique frequency bins.
+    // So, magnitudes[f][k] gives the magnitude of the k-th frequency bin for
+    // the f-th frame
+    std::vector<std::vector<float>> magnitudes(frame_count, std::vector<float>(m_numFrequencyBins));
 
-    fftwf_plan plan = fftwf_plan_dft_r2c_1d(fftSize, fftInput, fftOutput, FFTW_ESTIMATE);
-
-    std::vector<std::vector<float>> magnitudes(frameCount, std::vector<float>(fftSize / 2 + 1));
-
-    for (size_t frame = 0; frame < frameCount; ++frame)
+    for (std::size_t frame = 0; frame < frame_count; ++frame)
     {
-        size_t startIdx = frame * hopSize;
+        // Shifts the starting position by `hop_size` samples for each
+        // successive frame.
+        std::size_t start_index = frame * hop_size;
 
         // Apply window
-        for (size_t i = 0; i < fftSize; ++i)
-            fftInput[i] = samples[startIdx + i] * window[i];
+        for (std::size_t i = 0; i < m_fftSize; ++i)
+            m_fftInputBuffer[i] = fileSamples[start_index + i] * m_hannWindow[i];
 
-        // Execute FFT
-        fftwf_execute(plan);
+        fftwf_execute(m_fftwPlan);
 
-        // Compute magnitude spectrum
-        for (size_t bin = 0; bin < fftSize / 2 + 1; ++bin)
-            magnitudes[frame][bin] = std::sqrt(fftOutput[bin][0] * fftOutput[bin][0] +
-                fftOutput[bin][1] * fftOutput[bin][1]);
+        // Compute the inner magnitude vector (magnitude spectrum)
+        for (std::size_t bin = 0; bin < m_numFrequencyBins; ++bin)
+        {
+            auto real_part = m_fftOutputBuffer[bin][0];
+            auto imaginary_part = m_fftOutputBuffer[bin][1];
+            magnitudes[frame][bin] = std::sqrt((real_part * real_part) + (imaginary_part * imaginary_part));
+        }
     }
 
-    fftwf_destroy_plan(plan);
-    fftwf_free(fftInput);
-    fftwf_free(fftOutput);
+    // Compute average magnitudes
+    /*std::vector<float> average_magnitudes(m_numFrequencyBins);
+    for (std::size_t bin = 0; bin < m_numFrequencyBins; ++bin)
+    {
+        auto sum = 0.0f;
+
+        for (std::size_t frame = 0; frame < frame_count; ++frame)
+            sum += magnitudes[frame][bin];
+
+        average_magnitudes[bin] = sum / static_cast<float>(frame_count);
+    }*/
 
     // Aggregate results into Analysis (example: average magnitudes)
     Analysis analysis{};
-    analysis.averageMagnitudes.resize(fftSize / 2 + 1);
-    for (size_t bin = 0; bin < fftSize / 2 + 1; ++bin)
-    {
-        float sum = 0.0f;
-        for (size_t frame = 0; frame < frameCount; ++frame)
-            sum += magnitudes[frame][bin];
-        analysis.averageMagnitudes[bin] = sum / frameCount;
-    }
-    */
+    analysis.fftSize = m_fftSize;
+
+    //...
 
     return analysis;
-}
-
-void AudioAnalyzer::_initHannWindow()
-{
-    m_hannWindow.resize(m_fftSize);
-
-    for (std::size_t i = 0; i < m_fftSize; ++i)
-    {
-        // Calculate the cosine of the normalized angular position for index i
-        auto cosine = std::cos((2.0f * m_pi * i) / (m_fftSize - 1));
-
-        // Calculate the Hann window coefficient for index i
-        m_hannWindow[i] = 0.5f * (1.0f - cosine);
-    }
-}
-
-std::streamsize AudioAnalyzer::_sizeOf(std::ifstream& stream) const
-{
-    stream.seekg(0, std::ios::end);
-    std::streamsize size = stream.tellg();
-    stream.seekg(0, std::ios::beg);
-
-    return size;
 }
