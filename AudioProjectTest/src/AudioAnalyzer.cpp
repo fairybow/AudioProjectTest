@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <numeric>
 
 AudioAnalyzer::AudioAnalyzer()
 {
@@ -22,9 +23,10 @@ AudioAnalyzer::~AudioAnalyzer()
 std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<std::filesystem::path>& inFiles, std::size_t fftSize)
 {
     // m_fftSize Initializes to 0
-    if (m_fftSize != fftSize)
+    auto fft_size = static_cast<int>(fftSize);
+    if (m_fftSize != fft_size)
     {
-        m_fftSize = fftSize;
+        m_fftSize = fft_size;
         _initFftwPlan();
         _initHannWindow();
     }
@@ -183,50 +185,64 @@ AudioAnalyzer::Analysis AudioAnalyzer::_analyzeFileSamples(const std::vector<flo
 
     // FFTW start:
 
+    std::vector<float> total_spectral_energy(m_numFrequencyBins);
+
     // Rows represent frames (time slices of the signal).
     // Columns represent unique frequency bins.
     // So, magnitudes[f][k] gives the magnitude of the k-th frequency bin for
     // the f-th frame
     std::vector<std::vector<float>> magnitudes(frame_count, std::vector<float>(m_numFrequencyBins));
 
+    // FFT and magnitude calculation
     for (std::size_t frame = 0; frame < frame_count; ++frame)
     {
         // Shifts the starting position by `hop_size` samples for each
         // successive frame.
         std::size_t start_index = frame * hop_size;
 
-        // Apply window
+        // Fill input buffer with Hann window applied:
         for (std::size_t i = 0; i < m_fftSize; ++i)
-            m_fftInputBuffer[i] = fileSamples[start_index + i] * m_hannWindow[i];
+        {
+            if ((start_index + i) < fileSamples.size())
+                m_fftInputBuffer[i] = fileSamples[start_index + i] * m_hannWindow[i];
+            else
+                m_fftInputBuffer[i] = 0.0f; // Zero-pad if there are not enough samples
+        }
 
         fftwf_execute(m_fftwPlan);
 
-        // Compute the inner magnitude vector (magnitude spectrum)
         for (std::size_t bin = 0; bin < m_numFrequencyBins; ++bin)
         {
-            auto real_part = m_fftOutputBuffer[bin][0];
-            auto imaginary_part = m_fftOutputBuffer[bin][1];
-            magnitudes[frame][bin] = std::sqrt((real_part * real_part) + (imaginary_part * imaginary_part));
+            auto real = m_fftOutputBuffer[bin][0];
+            auto imaginary = m_fftOutputBuffer[bin][1];
+            auto magnitude = std::sqrt((real * real) + (imaginary * imaginary));
+            magnitudes[frame][bin] = magnitude;
+            total_spectral_energy[bin] += magnitude;
         }
     }
 
-    // Compute average magnitudes
-    /*std::vector<float> average_magnitudes(m_numFrequencyBins);
-    for (std::size_t bin = 0; bin < m_numFrequencyBins; ++bin)
-    {
-        auto sum = 0.0f;
-
-        for (std::size_t frame = 0; frame < frame_count; ++frame)
-            sum += magnitudes[frame][bin];
-
-        average_magnitudes[bin] = sum / static_cast<float>(frame_count);
-    }*/
-
     // Aggregate results into Analysis (example: average magnitudes)
     Analysis analysis{};
-    analysis.fftSize = m_fftSize;
+    analysis.spectralEnergy = total_spectral_energy;
 
-    //...
+    // UNTESTED GPT:
+
+    // Calculate confidence score
+    float low_freq_energy = std::accumulate(total_spectral_energy.begin() + 1, total_spectral_energy.begin() + 5, 0.0f); // Approx <300 Hz
+    float mid_freq_energy = std::accumulate(total_spectral_energy.begin() + 5, total_spectral_energy.begin() + 20, 0.0f); // 300-3 kHz
+    float high_freq_energy = std::accumulate(total_spectral_energy.begin() + 20, total_spectral_energy.end(), 0.0f); // >3 kHz
+
+    // Simple heuristic for human voice detection
+    if (mid_freq_energy > low_freq_energy && mid_freq_energy > high_freq_energy)
+    {
+        analysis.containsVoice = true;
+        analysis.voiceConfidence = mid_freq_energy / (low_freq_energy + high_freq_energy + mid_freq_energy);
+    }
+    else
+    {
+        analysis.containsVoice = false;
+        analysis.voiceConfidence = 0.0f;
+    }
 
     return analysis;
 }

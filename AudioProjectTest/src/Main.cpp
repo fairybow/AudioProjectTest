@@ -19,6 +19,7 @@ int main(int argc, char* argv[])
     {
         AudioAnalyzer analyzer{};
         auto analysis = analyzer.process("C:\\Dev\\sample-audio-file-human-then-static.raw");
+        std::cout << "Contains voice:" << analysis.containsVoice << "\nConfidence score:" << analysis.voiceConfidence;
     }
     catch (const std::exception& ex)
     {

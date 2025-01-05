@@ -11,18 +11,20 @@
 // Note: implement batch analysis and be sure to reuse the fftwf_plan, for
 // fastest speed, as per the FAQs.
 
+// Do voice detection in-class, while processing each file, for speed. Can use a
+// utility namespace.
+// Can set it up, later, to use a function pointer / callback mechanism
+
 class AudioAnalyzer
 {
 public:
-    // Something like this
     struct Analysis
     {
-        //std::vector<std::complex<float>> frequencyData;  // FFT results (complex spectrum)
-        //std::vector<float> magnitudeSpectrum;           // Magnitude of the FFT results
-        //double samplingRate;                             // Sampling rate of the audio
-        std::size_t fftSize;                             // Size of the FFT used
-        //std::vector<float> timeDomainData;              // Optional: original samples (useful for debugging)
-        //std::vector<float> voicedRegions;               // Optional: flags/indicators of voiced segments
+        bool containsVoice = false;             // True if the clip is likely to contain human voice
+        float voiceConfidence = 0.0f;           // Confidence score (0.0 to 1.0)
+        std::vector<float> spectralEnergy{};    // Energy in key bands
+        //std::vector<float> formantPeaks;      // Detected formant frequencies
+        // NOTE are formant peaks needed?
     };
 
     AudioAnalyzer();
@@ -32,13 +34,14 @@ public:
     Analysis process(const std::filesystem::path& inFile, std::size_t fftSize = DEFAULT_FFT_SIZE);
 
 private:
-    static constexpr std::size_t DEFAULT_FFT_SIZE = 1024;
-    static constexpr float m_pi = 3.141593; // Accurate enough?
+    static constexpr int DEFAULT_FFT_SIZE = 1024;
+    static constexpr float m_pi = 3.141593f; // Accurate enough?
     // Make configurable?:
     static constexpr auto m_normalizationFactor = 1.0f / 32768.0f;
     static constexpr auto m_overlapPercentage = 0.5f; // 0.0 - 1.0
 
-    std::size_t m_fftSize{};
+    // FFTW takes an int, but size_t as entry point (in process call) makes sense, I think
+    int m_fftSize{};
 
     std::size_t m_numFrequencyBins{};
     float* m_fftInputBuffer = nullptr;

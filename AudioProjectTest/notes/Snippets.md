@@ -19,6 +19,21 @@ catch (const std::exception& ex)
 }*/
 ```
 
+## Analysis struct
+
+```
+// Something like this
+struct Analysis
+{
+    //std::vector<std::complex<float>> frequencyData;  // FFT results (complex spectrum)
+    //std::vector<float> magnitudeSpectrum;           // Magnitude of the FFT results
+    //double samplingRate;                             // Sampling rate of the audio
+    std::size_t fftSize;                             // Size of the FFT used
+    //std::vector<float> timeDomainData;              // Optional: original samples (useful for debugging)
+    //std::vector<float> voicedRegions;               // Optional: flags/indicators of voiced segments
+};
+```
+
 ## FFTW Test Main
 
 ```
