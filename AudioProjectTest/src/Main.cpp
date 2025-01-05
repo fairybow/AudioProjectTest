@@ -1,5 +1,4 @@
 #include "AudioAnalyzer.h"
-#include "VoiceDetector.h"
 
 #include <filesystem>
 #include <iostream>
@@ -15,11 +14,13 @@ int main(int argc, char* argv[])
     for (auto i = 1; i < argc; ++i)
         audio_file_paths.emplace_back(argv[i]);
 
+    //----------------
+
     try
     {
         AudioAnalyzer analyzer{};
         auto analysis = analyzer.process("C:\\Dev\\sample-audio-file-human-then-static.raw");
-        std::cout << "Contains voice:" << analysis.containsVoice << "\nConfidence score:" << analysis.voiceConfidence;
+        //...
     }
     catch (const std::exception& ex)
     {

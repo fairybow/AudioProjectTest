@@ -20,11 +20,8 @@ class AudioAnalyzer
 public:
     struct Analysis
     {
-        bool containsVoice = false;             // True if the clip is likely to contain human voice
-        float voiceConfidence = 0.0f;           // Confidence score (0.0 to 1.0)
-        std::vector<float> spectralEnergy{};    // Energy in key bands
-        //std::vector<float> formantPeaks;      // Detected formant frequencies
-        // NOTE are formant peaks needed?
+        // Each analysis would, I guess, contain a note on each second of the
+        // clip and whether that second is voice, static, etc.
     };
 
     AudioAnalyzer();

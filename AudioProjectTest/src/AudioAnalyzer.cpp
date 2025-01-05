@@ -168,7 +168,7 @@ std::streamsize AudioAnalyzer::_sizeOf(std::ifstream& stream) const
     return size;
 }
 
-AudioAnalyzer::Analysis AudioAnalyzer::_analyzeFileSamples(const std::vector<float>& fileSamples) const
+/*AudioAnalyzer::Analysis AudioAnalyzer::_analyzeFileSamples(const std::vector<float>& fileSamples) const
 {
     // Divides into frames and perform FFT
 
@@ -243,6 +243,115 @@ AudioAnalyzer::Analysis AudioAnalyzer::_analyzeFileSamples(const std::vector<flo
         analysis.containsVoice = false;
         analysis.voiceConfidence = 0.0f;
     }
+
+    return analysis;
+}*/
+
+// Process into 1 second clips and determine whether each second contains voice,
+// static, music, etc.
+/*So basically the goal is to read the audio data and process it in something
+like one-second intervals, for each interval using FFT to identify the
+frequencies present in that audio sample, and then based on that to characterize
+whether the sample contains human speech, music, or load static / screeching
+noise.  As background to this project, this came about because I need to
+troubleshoot a problem on one of my systems where intermittently customers have
+reported hearing loud static -- it is difficult to troubleshoot based only on
+customer reports so I want to instrument the system to log or alert whenever
+static is present in the audio stream.*/
+// If we want to simply log for static, does it matter what anything else is?
+// That is, if there is any sort of "guaranteed" way to identify
+// static/screeching/bad noise.
+AudioAnalyzer::Analysis AudioAnalyzer::_analyzeFileSamples(const std::vector<float>& fileSamples) const
+{
+    // Divides into frames and perform FFT
+
+    // Setup frames
+    auto hop_size = static_cast<std::size_t>(m_fftSize * m_overlapPercentage);
+    std::cout << "Hop size: " << hop_size << std::endl;
+
+    // Divide the audio signal into overlapping chunks of size m_fftSize
+    std::size_t frame_count = ((fileSamples.size() - m_fftSize) / hop_size) + 1;
+    std::cout << "Frame count: " << frame_count << std::endl;
+
+    std::vector<float> total_spectral_energy(m_numFrequencyBins);
+
+    // Initialize magnitudes matrix
+    std::vector<std::vector<float>> magnitudes(frame_count, std::vector<float>(m_numFrequencyBins));
+
+    // FFT and magnitude calculation
+    for (std::size_t frame = 0; frame < frame_count; ++frame)
+    {
+        std::size_t start_index = frame * hop_size;
+        //std::cout << "Processing frame " << frame << " starting at index " << start_index << std::endl;
+
+        // Fill input buffer with Hann window applied
+        for (std::size_t i = 0; i < m_fftSize; ++i)
+        {
+            if ((start_index + i) < fileSamples.size())
+                m_fftInputBuffer[i] = fileSamples[start_index + i] * m_hannWindow[i];
+            else
+                m_fftInputBuffer[i] = 0.0f; // Zero-pad if there are not enough samples
+        }
+
+        fftwf_execute(m_fftwPlan);
+
+        for (std::size_t bin = 0; bin < m_numFrequencyBins; ++bin)
+        {
+            auto real = m_fftOutputBuffer[bin][0];
+            auto imaginary = m_fftOutputBuffer[bin][1];
+            auto magnitude = std::sqrt((real * real) + (imaginary * imaginary));
+            magnitudes[frame][bin] = magnitude;
+            total_spectral_energy[bin] += magnitude;
+        }
+
+        //std::cout << "Frame " << frame << " magnitudes: ";
+        //for (const auto& mag : magnitudes[frame])
+        //{
+            //std::cout << mag << " ";
+        //}
+        //std::cout << std::endl;
+    }
+
+    // Aggregate results into Analysis (example: average magnitudes)
+    Analysis analysis{};
+    analysis.spectralEnergy = total_spectral_energy;
+
+    std::cout << "Total spectral energy: ";
+    for (const auto& energy : total_spectral_energy)
+    {
+        std::cout << energy << " ";
+    }
+    std::cout << std::endl;
+
+    // Calculate confidence score
+    float low_freq_energy = std::accumulate(total_spectral_energy.begin() + 1, total_spectral_energy.begin() + 5, 0.0f); // Approx <300 Hz
+    float mid_freq_energy = std::accumulate(total_spectral_energy.begin() + 5, total_spectral_energy.begin() + 20, 0.0f); // 300-3 kHz
+    float high_freq_energy = std::accumulate(total_spectral_energy.begin() + 20, total_spectral_energy.end(), 0.0f); // >3 kHz
+
+    std::cout << "Low frequency energy: " << low_freq_energy << std::endl;
+    std::cout << "Mid frequency energy: " << mid_freq_energy << std::endl;
+    std::cout << "High frequency energy: " << high_freq_energy << std::endl;
+
+    // Log relative contributions of energy
+    float total_energy = low_freq_energy + mid_freq_energy + high_freq_energy;
+    std::cout << "Low freq %: " << (low_freq_energy / total_energy) * 100 << "%\n";
+    std::cout << "Mid freq %: " << (mid_freq_energy / total_energy) * 100 << "%\n";
+    std::cout << "High freq %: " << (high_freq_energy / total_energy) * 100 << "%\n";
+
+    // Adjusted heuristic for human voice detection
+    if (mid_freq_energy > (low_freq_energy * 0.5) && mid_freq_energy > (high_freq_energy * 0.1))
+    {
+        analysis.containsVoice = true;
+        analysis.voiceConfidence = mid_freq_energy / total_energy;
+    }
+    else
+    {
+        analysis.containsVoice = false;
+        analysis.voiceConfidence = 0.0f;
+    }
+
+    std::cout << "Contains voice: " << (analysis.containsVoice ? "true" : "false") << std::endl;
+    std::cout << "Voice confidence: " << analysis.voiceConfidence << std::endl;
 
     return analysis;
 }
