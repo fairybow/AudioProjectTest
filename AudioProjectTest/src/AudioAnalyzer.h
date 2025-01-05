@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <filesystem>
 #include <vector>
 
@@ -14,23 +15,37 @@ public:
     // Something like this
     struct Analysis
     {
-        //std::vector<std::complex<double>> frequencyData; // Frequency-domain data (from FFT)
-        //double samplingRate;                             // Sampling rate of the audio file
-        //size_t fftSize;                                  // Size of the FFT
-        //std::vector<double> timeDomainData;              // (Optional) Original time-domain samples
+        //std::vector<std::complex<float>> frequencyData;  // FFT results (complex spectrum)
+        //std::vector<float> magnitudeSpectrum;           // Magnitude of the FFT results
+        //double samplingRate;                             // Sampling rate of the audio
+        std::size_t fftSize;                             // Size of the FFT used
+        //std::vector<float> timeDomainData;              // Optional: original samples (useful for debugging)
+        //std::vector<float> voicedRegions;               // Optional: flags/indicators of voiced segments
     };
 
     AudioAnalyzer();
     virtual ~AudioAnalyzer() = default;
 
-    std::vector<Analysis> process(const std::vector<std::filesystem::path>& paths, size_t fftSize = DEFAULT_FFT_SIZE);
-    Analysis process(const std::filesystem::path& path, size_t fftSize = DEFAULT_FFT_SIZE);
+    std::vector<Analysis> process(const std::vector<std::filesystem::path>& inFiles, std::size_t fftSize = DEFAULT_FFT_SIZE);
+    Analysis process(const std::filesystem::path& inFile, std::size_t fftSize = DEFAULT_FFT_SIZE);
 
 private:
-    static constexpr auto DEFAULT_FFT_SIZE = 1024;
+    static constexpr std::size_t DEFAULT_FFT_SIZE = 1024;
 
-    // We may or may not need fftSize as memvar
+    std::size_t m_fftSize{};
+    std::vector<float> m_hannWindow{};
+    static constexpr float m_pi = 3.141593; // Accurate enough?
+
+    // Make configurable?:
+    static constexpr auto m_normalizationFactor = 1.0f / 32768.0f;
+    static constexpr auto m_overlapPercentage = 0.5f; // 0.0 - 1.0
+
     // m_plan;      // Cached plan for batch analysis, for speeeeeed
     // m_wisdom;    // read from disk
+
+    std::vector<float> _toSamples(std::ifstream& rawAudio) const;
+    Analysis _analyzeFileSamples(const std::vector<float>& fileSamples) const;
+    void _initHannWindow();
+    std::streamsize _sizeOf(std::ifstream& stream) const;
 
 }; // class AudioAnalyzer

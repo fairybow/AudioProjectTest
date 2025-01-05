@@ -1,5 +1,24 @@
 # Snippets
 
+## Main
+
+```
+/*try
+{
+    AudioAnalyzer analyzer{};
+    //auto analyses = analyzer.process(audio_file_paths);
+
+    VoiceDetector detector{};
+    std::cout << detector.read(analyses); // (Or something)
+    // Perhaps a hasVoice bool return for each...depends on what we need...
+}
+catch (const std::exception& ex)
+{
+    std::cout << ex.what();
+    return 1;
+}*/
+```
+
 ## FFTW Test Main
 
 ```

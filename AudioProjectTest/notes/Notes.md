@@ -2,6 +2,18 @@
 
 Our audio files are headerless (raw), 8 kHz sampling, linear 16 encoding (meaning 2 byte samples in linear PCM encoding).
 
+## FFT
+
+The signal is divided into overlapping chunks (frames), each the size of the FFT. Each FFT computes the frequency domain representation for one chunk of the audio signal.
+
+## Windows
+
+A window is a mathematical function applied to each frame of audio samples before performing the FFT. Its purpose is to reduce spectral leakage, which occurs when discontinuities at the boundaries of the frame introduce artifacts into the frequency spectrum.
+
+A window function is a curve that scales the amplitude of audio samples in a frame.
+The function typically emphasizes the center of the frame while tapering the edges to zero.
+Applying a window minimizes the abrupt transitions at frame boundaries, improving the accuracy of the FFT.
+
 ## FFT Wisdom
 
 FFTW generates customized instructions to optimize each FFT computation based on its specific parameters. The wisdom file stores precomputed optimization data, enabling the library to reuse efficient plans and avoid the time-consuming process of recalculating them for every program run.
