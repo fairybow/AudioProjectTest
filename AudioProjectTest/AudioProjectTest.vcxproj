@@ -28,12 +28,14 @@
     <None Include="scripts\PreBuild.bat" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="old\AudioAnalyzerOLD.cpp" />
     <ClCompile Include="old\FftwOLD.cpp" />
     <ClCompile Include="src\Diagnostics.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\AudioAnalyzer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="old\AudioAnalyzerOLD.h" />
     <ClInclude Include="src\Diagnostics.h" />
     <ClInclude Include="src\AudioAnalyzer.h" />
   </ItemGroup>
