@@ -183,6 +183,11 @@ void AudioAnalyzer::_fftAnalyzeSegment
     std::vector<float>& staticSegmentStarts
 )
 {
+    std::cout << "Segment size: " << segment.size() << "\n";
+    std::cout << "Hann window size: " << m_hannWindow.size() << "\n";
+    std::cout << "FFT input buffer size: " << m_fftSize << "\n";
+    // Vector problem. Must process segments further into chunks of fft size
+
     // Copy segment data into FFT input buffer with scaling and Hann window
     for (std::size_t i = 0; i < segment.size(); ++i)
     {
