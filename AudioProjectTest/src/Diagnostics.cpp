@@ -5,8 +5,9 @@
 
 namespace Diagnostics
 {
-    void throwRuntimeError
+    void throwError
     (
+        Error error,
         const char* file,
         int line,
         const char* function,
@@ -25,7 +26,13 @@ namespace Diagnostics
             message
         );
 
-        throw std::runtime_error(what.c_str());
+        switch (error)
+        {
+        case OutOfRange:    throw std::out_of_range(what.c_str());
+
+        default:
+        case RunTime:       throw std::runtime_error(what.c_str());
+        }
     }
 
 } // namespace Diagnostics

@@ -1,4 +1,5 @@
 #include "AudioAnalyzer.h"
+#include "Diagnostics.h"
 
 AudioAnalyzer::AudioAnalyzer()
 {
@@ -18,5 +19,6 @@ AudioAnalyzer::Analysis AudioAnalyzer::process(const std::filesystem::path& inFi
 
 std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<std::filesystem::path>& inFiles)
 {
-
+    // Use the vector processing
+    // https://www.fftw.org/fftw3_doc/SIMD-alignment-and-fftw_005fmalloc.html#SIMD-alignment-and-fftw_005fmalloc
 }

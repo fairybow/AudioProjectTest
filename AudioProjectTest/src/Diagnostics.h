@@ -9,8 +9,20 @@
 // `std::source_location` doesn't allow us to obtain an unqualified function
 // signature like __FUNCTION__. (May need to adjust for platforms.)
 #define DX_THROW_RTE(message, ...)      \
-    Diagnostics::throwRuntimeError      \
+    Diagnostics::throwError             \
     (                                   \
+        Diagnostics::RunTime,           \
+        __FILE__,                       \
+        __LINE__,                       \
+        __FUNCTION__,                   \
+        message,                        \
+        ##__VA_ARGS__                   \
+    )
+
+#define DX_THROW_OOR(message, ...)      \
+    Diagnostics::throwError             \
+    (                                   \
+        Diagnostics::OutOfRange,        \
         __FILE__,                       \
         __LINE__,                       \
         __FUNCTION__,                   \
@@ -20,8 +32,15 @@
 
 namespace Diagnostics
 {
-    void throwRuntimeError
+    enum Error
+    {
+        RunTime,
+        OutOfRange
+    };
+
+    void throwError
     (
+        Error error,
         const char* file,
         int line,
         const char* function,
@@ -29,8 +48,9 @@ namespace Diagnostics
     );
 
     template <typename... ArgsT>
-    void throwRuntimeError
+    void throwError
     (
+        Error error,
         const char* file,
         int line,
         const char* function,
@@ -39,7 +59,7 @@ namespace Diagnostics
     )
     {
         auto formatted_message = std::vformat(messageFormat, std::make_format_args(args...));
-        throwRuntimeError(file, line, function, formatted_message.c_str());
+        throwError(error, file, line, function, formatted_message.c_str());
     }
 
 } // namespace Diagnostics
