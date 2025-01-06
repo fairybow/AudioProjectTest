@@ -149,14 +149,21 @@ void AudioAnalyzer::_processWithoutAvx2
 
         // Right now, we're not stopping or handling failure in any way
         if (!std::filesystem::exists(in_file))
+        {
             DX_THROW_RTE("\"{}\" does not exist.", in_file.string());
+        }
 
         if (!std::filesystem::is_regular_file(in_file))
+        {
             DX_THROW_RTE("\"{}\" is not a regular file.", in_file.string());
+        }
 
         std::ifstream raw_audio(in_file, std::ios::binary);
+
         if (!raw_audio)
+        {
             DX_THROW_RTE("Unable to open file at \"{}\"", in_file.string());
+        }
 
         // Calculate raw audio stream size
         raw_audio.seekg(0, std::ios::end);
@@ -215,7 +222,9 @@ void AudioAnalyzer::_fftAnalyzeChunk
 {
     // Copy chunk data into FFT input buffer with scaling and Hann window
     for (std::size_t i = 0; i < chunk.size(); ++i)
+    {
         m_fftInputBuffer[i] = chunk[i] * m_hannWindow[i];
+    }
 
     // Zero-pad the remainder of the buffer if the chunk is smaller than m_fftSize
     std::fill(m_fftInputBuffer + chunk.size(), m_fftInputBuffer + m_fftSize, 0.0f);
@@ -244,5 +253,7 @@ void AudioAnalyzer::_fftAnalyzeChunk
     );
 
     if (is_static)
+    {
         staticChunkStartTimes.emplace_back(segmentStartTimeSeconds);
+    }
 }
