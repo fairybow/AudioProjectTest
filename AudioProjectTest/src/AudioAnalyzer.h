@@ -54,7 +54,7 @@ private:
     std::size_t m_numFrequencyBins = 0;
     float* m_fftInputBuffer = nullptr;
     fftwf_complex* m_fftOutputBuffer = nullptr;
-    fftwf_plan mop_fftwPlan = nullptr;
+    fftwf_plan m_fftwPlan = nullptr;
 
     void _initFftw();
     void _freeFftw();
@@ -75,7 +75,11 @@ private:
         const std::vector<std::filesystem::path>& inFiles
     );
 
-    std::streamsize _sizeOf(std::ifstream& stream) const;
-    float _seconds(std::streamsize streamSize) const;
+    void _fftAnalyzeSegment
+    (
+        const std::vector<int16_t>& segment,
+        float segmentStartTime,
+        std::vector<float>& staticSegmentStarts
+    );
 
 }; // class AudioAnalyzer

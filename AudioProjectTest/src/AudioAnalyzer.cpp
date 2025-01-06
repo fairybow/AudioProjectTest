@@ -7,6 +7,7 @@
 #include <fstream>
 #include <ios>
 #include <iostream> // temp?
+#include <algorithm>
 
 #if defined(USE_AVX2)
 #pragma message("Using AVX2 SIMD.")
@@ -56,7 +57,7 @@ void AudioAnalyzer::_initFftw()
     m_fftInputBuffer = fftwf_alloc_real(m_fftSize);
     m_fftOutputBuffer = fftwf_alloc_complex(m_numFrequencyBins);
 
-    mop_fftwPlan = fftwf_plan_dft_r2c_1d
+    m_fftwPlan = fftwf_plan_dft_r2c_1d
     (
         static_cast<int>(m_fftSize),
         m_fftInputBuffer,
@@ -69,10 +70,10 @@ void AudioAnalyzer::_freeFftw()
 {
     // If we only call this in destructor, then I guess we don't need checks or
     // nullptr assignment
-    if (mop_fftwPlan)
+    if (m_fftwPlan)
     {
-        fftwf_destroy_plan(mop_fftwPlan);
-        mop_fftwPlan = nullptr;
+        fftwf_destroy_plan(m_fftwPlan);
+        m_fftwPlan = nullptr;
     }
 
     if (m_fftOutputBuffer)
@@ -150,8 +151,10 @@ void AudioAnalyzer::_processWithoutAvx2
         for (std::size_t segment_index = 0; segment_index < num_full_segments; ++segment_index)
         {
             raw_audio.read(reinterpret_cast<char*>(buffer.data()), samples_per_segment * sizeof(int16_t));
+            float segment_start_time = segment_index * m_segmentSeconds;
             // Process the buffer for this segment
             // Pass static_segment_starts and add results while processing
+            _fftAnalyzeSegment(buffer, segment_start_time, static_segment_starts);
         }
 
         // Handle remainder
@@ -162,6 +165,8 @@ void AudioAnalyzer::_processWithoutAvx2
             raw_audio.read(reinterpret_cast<char*>(remainder_buffer.data()), remainder_samples * sizeof(int16_t));
             // Process the remainder buffer
             // Pass static_segment_starts and add results while processing
+            float remainder_start_time = num_full_segments * m_segmentSeconds;
+            _fftAnalyzeSegment(remainder_buffer, remainder_start_time, static_segment_starts);
         }
 
         // Update the analysis result
@@ -169,4 +174,47 @@ void AudioAnalyzer::_processWithoutAvx2
         analyses[i].segmentSeconds = m_segmentSeconds;
         analyses[i].staticSegmentStarts = static_segment_starts;
     }
+}
+
+void AudioAnalyzer::_fftAnalyzeSegment
+(
+    const std::vector<int16_t>& segment,
+    float segmentStartTime,
+    std::vector<float>& staticSegmentStarts
+)
+{
+    // Copy segment data into FFT input buffer with scaling and Hann window
+    for (std::size_t i = 0; i < segment.size(); ++i)
+    {
+        m_fftInputBuffer[i] = segment[i] * m_hannWindow[i];
+    }
+
+    // Execute the FFT plan
+    fftwf_execute(m_fftwPlan);
+
+    // Analyze FFT output (magnitude calculation for each frequency bin)
+    std::vector<float> magnitudes(m_numFrequencyBins);
+    for (std::size_t k = 0; k < m_numFrequencyBins; ++k)
+    {
+        float real = m_fftOutputBuffer[k][0];
+        float imag = m_fftOutputBuffer[k][1];
+        magnitudes[k] = std::sqrt(real * real + imag * imag);
+    }
+
+    // Static detection logic placeholder (to be implemented later)
+    // For now, we assume a simple placeholder threshold
+    float static_threshold = 1000.0f; // Placeholder value
+    bool is_static = std::all_of(magnitudes.begin(), magnitudes.end(),
+        [static_threshold](float mag) { return mag > static_threshold; });
+
+    if (is_static)
+    {
+        staticSegmentStarts.emplace_back(segmentStartTime);
+    }
+
+    // Optional: Clear FFT buffers (depending on FFTW behavior)
+    //std::fill(m_fftInputBuffer, m_fftInputBuffer + m_fftSize, 0.0f);
+    //std::fill(reinterpret_cast<float*>(m_fftOutputBuffer),
+        //reinterpret_cast<float*>(m_fftOutputBuffer) + (2 * m_numFrequencyBins),
+        //0.0f);
 }
