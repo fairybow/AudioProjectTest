@@ -12,12 +12,10 @@ public:
     struct Analysis
     {
         std::filesystem::path file{};
-        // Adjustable later
-        // Will help give range for segment at x seconds
-        float segmentSeconds = 0.0f;
-        // Handle remainder somehow (range will be wrong if we go by starting point + segmentSize)
-
-        std::vector<float> staticSegmentStarts{};
+        // FFT size determines the time resolution of static detection
+        float chunkDurationSeconds = 0.0f;
+        // Start times (in seconds) of detected static chunks
+        std::vector<float> staticChunkStartTimes{};
     };
 
     AudioAnalyzer();
@@ -27,13 +25,12 @@ public:
     std::vector<Analysis> process(const std::vector<std::filesystem::path>& inFiles);
 
 private:
+    // FFT size represents the number of samples in a chunk
+    // (2048 bytes with int16_t)
     static constexpr std::size_t DEFAULT_FFT_SIZE = 1024;
-    static constexpr auto DEFAULT_SEGMENT_SECONDS = 1.0f;
-    // ^ Definitely hard coded.
+    static constexpr auto SAMPLING_RATE = 8000.0f;
 
     std::size_t m_fftSize = DEFAULT_FFT_SIZE;
-    float m_segmentSeconds = DEFAULT_SEGMENT_SECONDS;
-    static constexpr auto SAMPLING_RATE = 8000.0f;
 
     //--------------------------------------------------------------------------
     // Windowing
@@ -75,11 +72,11 @@ private:
         const std::vector<std::filesystem::path>& inFiles
     );
 
-    void _fftAnalyzeSegment
+    void _fftAnalyzeChunk
     (
-        const std::vector<int16_t>& segment,
-        float segmentStartTime,
-        std::vector<float>& staticSegmentStarts
+        const std::vector<int16_t>& chunk,
+        float segmentStartTimeSeconds,
+        std::vector<float>& staticChunkStartTimes
     );
 
 }; // class AudioAnalyzer

@@ -119,7 +119,7 @@ void AudioAnalyzer::_processWithoutAvx2
 {
     for (std::size_t i = 0; i < inFiles.size(); ++i)
     {
-        std::vector<float> static_segment_starts{}; // Eventual product
+        std::vector<float> static_chunk_start_times{}; // Eventual product
         auto& in_file = inFiles[i];
 
         // Right now, we're not stopping or handling failure in any way
@@ -134,65 +134,68 @@ void AudioAnalyzer::_processWithoutAvx2
             DX_THROW_RTE("Unable to open file at \"{}\"", in_file.string());
 
         // Calculate raw audio stream size
-        std::streamsize raw_audio_size{};
         raw_audio.seekg(0, std::ios::end);
-        raw_audio_size = raw_audio.tellg();
+        std::streamsize raw_audio_size = raw_audio.tellg();
         raw_audio.seekg(0, std::ios::beg);
 
-        // Calculate audio length and segments
+        // Calculate number of chunks
         auto total_samples = raw_audio_size / sizeof(int16_t);
-        auto total_seconds = static_cast<float>(total_samples) / SAMPLING_RATE;
-        auto samples_per_segment = static_cast<std::size_t>(m_segmentSeconds * SAMPLING_RATE);
-        auto num_full_segments = total_samples / samples_per_segment;
-        auto has_remainder = total_samples % samples_per_segment != 0;
+        auto chunks_count = total_samples / m_fftSize;
+        auto has_remainder = (total_samples % m_fftSize) != 0;
 
-        // Calculate audio length and segments
-        std::vector<int16_t> buffer(samples_per_segment);
-        for (std::size_t segment_index = 0; segment_index < num_full_segments; ++segment_index)
+        // Analyze full chunks and record start time (in seconds) of chunks with static
+        std::vector<int16_t> buffer(m_fftSize);
+        for (std::size_t chunk_i = 0; chunk_i < chunks_count; ++chunk_i)
         {
-            raw_audio.read(reinterpret_cast<char*>(buffer.data()), samples_per_segment * sizeof(int16_t));
-            float segment_start_time = segment_index * m_segmentSeconds;
-            // Process the buffer for this segment
-            // Pass static_segment_starts and add results while processing
-            _fftAnalyzeSegment(buffer, segment_start_time, static_segment_starts);
+            raw_audio.read(reinterpret_cast<char*>(buffer.data()), m_fftSize * sizeof(int16_t));
+            auto chunk_start_time = static_cast<float>(chunk_i * m_fftSize) / SAMPLING_RATE;
+
+            _fftAnalyzeChunk
+            (
+                buffer,
+                chunk_start_time,
+                static_chunk_start_times
+            );
         }
 
-        // Handle remainder
+        // Analyze remainder
         if (has_remainder)
         {
-            std::size_t remainder_samples = total_samples % samples_per_segment;
-            std::vector<int16_t> remainder_buffer(remainder_samples);
+            std::size_t remainder_samples = total_samples % m_fftSize;
+            std::vector<int16_t> remainder_buffer(m_fftSize, 0);
             raw_audio.read(reinterpret_cast<char*>(remainder_buffer.data()), remainder_samples * sizeof(int16_t));
-            // Process the remainder buffer
-            // Pass static_segment_starts and add results while processing
-            float remainder_start_time = num_full_segments * m_segmentSeconds;
-            _fftAnalyzeSegment(remainder_buffer, remainder_start_time, static_segment_starts);
+            auto remainder_start_time = static_cast<float>(chunks_count * m_fftSize) / SAMPLING_RATE;
+
+            _fftAnalyzeChunk
+            (
+                remainder_buffer,
+                remainder_start_time,
+                static_chunk_start_times
+            );
         }
 
-        // Update the analysis result
+        // Aggregate results
         analyses[i].file = in_file;
-        analyses[i].segmentSeconds = m_segmentSeconds;
-        analyses[i].staticSegmentStarts = static_segment_starts;
+        analyses[i].chunkDurationSeconds = static_cast<float>(m_fftSize) / SAMPLING_RATE;
+        analyses[i].staticChunkStartTimes = static_chunk_start_times;
     }
 }
 
-void AudioAnalyzer::_fftAnalyzeSegment
+void AudioAnalyzer::_fftAnalyzeChunk
 (
-    const std::vector<int16_t>& segment,
-    float segmentStartTime,
-    std::vector<float>& staticSegmentStarts
+    const std::vector<int16_t>& chunk,
+    float segmentStartTimeSeconds,
+    std::vector<float>& staticChunkStartTimes
 )
 {
-    std::cout << "Segment size: " << segment.size() << "\n";
-    std::cout << "Hann window size: " << m_hannWindow.size() << "\n";
-    std::cout << "FFT input buffer size: " << m_fftSize << "\n";
-    // Vector problem. Must process segments further into chunks of fft size
-
-    // Copy segment data into FFT input buffer with scaling and Hann window
-    for (std::size_t i = 0; i < segment.size(); ++i)
+    // Copy chunk data into FFT input buffer with scaling and Hann window
+    for (std::size_t i = 0; i < chunk.size(); ++i)
     {
-        m_fftInputBuffer[i] = segment[i] * m_hannWindow[i];
+        m_fftInputBuffer[i] = chunk[i] * m_hannWindow[i];
     }
+
+    // Zero-pad the remainder of the buffer if the chunk is smaller than m_fftSize
+    std::fill(m_fftInputBuffer + chunk.size(), m_fftInputBuffer + m_fftSize, 0.0f);
 
     // Execute the FFT plan
     fftwf_execute(m_fftwPlan);
@@ -201,20 +204,25 @@ void AudioAnalyzer::_fftAnalyzeSegment
     std::vector<float> magnitudes(m_numFrequencyBins);
     for (std::size_t k = 0; k < m_numFrequencyBins; ++k)
     {
-        float real = m_fftOutputBuffer[k][0];
-        float imag = m_fftOutputBuffer[k][1];
-        magnitudes[k] = std::sqrt(real * real + imag * imag);
+        auto real = m_fftOutputBuffer[k][0];
+        auto imag = m_fftOutputBuffer[k][1];
+        magnitudes[k] = std::sqrt((real * real) + (imag * imag));
     }
 
     // Static detection logic placeholder (to be implemented later)
     // For now, we assume a simple placeholder threshold
-    float static_threshold = 1000.0f; // Placeholder value
-    bool is_static = std::all_of(magnitudes.begin(), magnitudes.end(),
-        [static_threshold](float mag) { return mag > static_threshold; });
+    auto static_threshold = 1000.0f; // Placeholder value
+
+    bool is_static = std::all_of
+    (
+        magnitudes.begin(),
+        magnitudes.end(),
+        [static_threshold](float mag) { return mag > static_threshold; }
+    );
 
     if (is_static)
     {
-        staticSegmentStarts.emplace_back(segmentStartTime);
+        staticChunkStartTimes.emplace_back(segmentStartTimeSeconds);
     }
 
     // Optional: Clear FFT buffers (depending on FFTW behavior)
