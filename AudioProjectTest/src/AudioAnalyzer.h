@@ -27,10 +27,10 @@ public:
     std::vector<Analysis> process(const std::vector<std::filesystem::path>& inFiles);
 
 private:
-    static constexpr std::size_t DEFAULT_FFT_SIZE = 1024;
+    static constexpr int DEFAULT_FFT_SIZE = 1024;
     static constexpr auto DEFAULT_SEGMENT_SECONDS = 1.0f;
 
-    std::size_t m_fftSize = DEFAULT_FFT_SIZE;
+    int m_fftSize = DEFAULT_FFT_SIZE;
     float m_segmentSeconds = DEFAULT_SEGMENT_SECONDS;
     // ^ Hard code for now. Allow changing later.
 
