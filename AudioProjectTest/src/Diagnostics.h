@@ -8,10 +8,10 @@
 
 // `std::source_location` doesn't allow us to obtain an unqualified function
 // signature like __FUNCTION__. (May need to adjust for platforms.)
-#define DX_THROW_RTE(message, ...)      \
+#define DX_THROW(error, message, ...)   \
     Diagnostics::throwError             \
     (                                   \
-        Diagnostics::RunTime,           \
+        error,                          \
         __FILE__,                       \
         __LINE__,                       \
         __FUNCTION__,                   \
@@ -19,13 +19,26 @@
         ##__VA_ARGS__                   \
     )
 
-#define DX_THROW_OOR(message, ...)      \
-    Diagnostics::throwError             \
+#define DX_THROW_IAE(message, ...)      \
+    DX_THROW                            \
+    (                                   \
+        Diagnostics::InvalidArg,        \
+        message,                        \
+        ##__VA_ARGS__                   \
+    )
+
+#define DX_THROW_OORE(message, ...)     \
+    DX_THROW                            \
     (                                   \
         Diagnostics::OutOfRange,        \
-        __FILE__,                       \
-        __LINE__,                       \
-        __FUNCTION__,                   \
+        message,                        \
+        ##__VA_ARGS__                   \
+    )
+
+#define DX_THROW_RTE(message, ...)      \
+    DX_THROW                            \
+    (                                   \
+        Diagnostics::RunTime,           \
         message,                        \
         ##__VA_ARGS__                   \
     )
@@ -34,8 +47,9 @@ namespace Diagnostics
 {
     enum Error
     {
-        RunTime,
-        OutOfRange
+        InvalidArg,
+        OutOfRange,
+        RunTime
     };
 
     void throwError
