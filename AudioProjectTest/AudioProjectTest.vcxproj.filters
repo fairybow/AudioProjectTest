@@ -76,5 +76,8 @@
     <ClInclude Include="old\AudioAnalyzerOLD.h">
       <Filter>Old</Filter>
     </ClInclude>
+    <ClInclude Include="src\Avx2.h">
+      <Filter>Source Files\Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

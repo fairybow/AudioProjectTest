@@ -19,7 +19,8 @@ int main(int argc, char* argv[])
     try
     {
         AudioAnalyzer analyzer{};
-        auto analysis = analyzer.process("C:\\Dev\\sample-audio-file-human-then-static.raw");
+        //auto analysis = analyzer.process("C:\\Dev\\sample-audio-file-human-then-static.raw"); // avx2 fails with one item...
+        auto analysis = analyzer.process(std::vector < std::filesystem::path>{ "C:\\Dev\\sample-audio-file-human-then-static.raw", "C:\\Dev\\sample-audio-file-human-then-static.raw", "C:\\Dev\\sample-audio-file-human-then-static.raw" });
         //...
     }
     catch (const std::exception& ex)
