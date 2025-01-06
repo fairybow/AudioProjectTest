@@ -1,4 +1,4 @@
-//#define USE_AVX2 // Temp
+#define USE_AVX2 // Temp
 
 #include "AudioAnalyzer.h"
 #include "Diagnostics.h"
@@ -215,9 +215,7 @@ void AudioAnalyzer::_fftAnalyzeChunk
 {
     // Copy chunk data into FFT input buffer with scaling and Hann window
     for (std::size_t i = 0; i < chunk.size(); ++i)
-    {
         m_fftInputBuffer[i] = chunk[i] * m_hannWindow[i];
-    }
 
     // Zero-pad the remainder of the buffer if the chunk is smaller than m_fftSize
     std::fill(m_fftInputBuffer + chunk.size(), m_fftInputBuffer + m_fftSize, 0.0f);
@@ -246,13 +244,5 @@ void AudioAnalyzer::_fftAnalyzeChunk
     );
 
     if (is_static)
-    {
         staticChunkStartTimes.emplace_back(segmentStartTimeSeconds);
-    }
-
-    // Optional: Clear FFT buffers (depending on FFTW behavior)
-    //std::fill(m_fftInputBuffer, m_fftInputBuffer + m_fftSize, 0.0f);
-    //std::fill(reinterpret_cast<float*>(m_fftOutputBuffer),
-        //reinterpret_cast<float*>(m_fftOutputBuffer) + (2 * m_numFrequencyBins),
-        //0.0f);
 }

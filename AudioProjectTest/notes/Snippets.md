@@ -34,6 +34,18 @@ struct Analysis
 };
 ```
 
+## Probably don't clear buffers
+
+We always zero pad the input buffer and write it to output, so I don't think we ever need to clear the buffers
+
+```
+// Optional: Clear FFT buffers (depending on FFTW behavior)
+//std::fill(m_fftInputBuffer, m_fftInputBuffer + m_fftSize, 0.0f);
+//std::fill(reinterpret_cast<float*>(m_fftOutputBuffer),
+    //reinterpret_cast<float*>(m_fftOutputBuffer) + (2 * m_numFrequencyBins),
+    //0.0f);
+```
+
 ## FFTW Test Main
 
 ```
