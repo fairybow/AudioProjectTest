@@ -41,10 +41,10 @@ private:
     //--------------------------------------------------------------------------
 
     static constexpr float PI = 3.141593f; // Accurate enough?
-    std::vector<float> m_hannWindow = std::vector<float>(m_fftSize);
+    std::vector<float> m_window = std::vector<float>(m_fftSize);
     // ^ Hard code for now. Allow changing later.
 
-    void _initHannWindow();
+    void _initWindow();
 
     //--------------------------------------------------------------------------
     // FFTW
@@ -64,13 +64,7 @@ private:
     // Processing
     //--------------------------------------------------------------------------
 
-    void _processWithAvx2
-    (
-        std::vector<Analysis>& analyses,
-        const std::vector<std::filesystem::path>& inFiles
-    );
-
-    void _processWithoutAvx2
+    void _process
     (
         std::vector<Analysis>& analyses,
         const std::vector<std::filesystem::path>& inFiles
