@@ -3,7 +3,9 @@
 #include "fftw3.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
+#include <ostream>
 #include <vector>
 
 class AudioAnalyzer
@@ -16,6 +18,8 @@ public:
         float chunkDurationSeconds = 0.0f;
         // Start times (in seconds) of detected static chunks
         std::vector<float> staticChunkStartTimes{};
+
+        friend std::ostream& operator<<(std::ostream&, const Analysis&);
     };
 
     AudioAnalyzer();
@@ -26,7 +30,7 @@ public:
 
 private:
     // FFT size represents the number of samples in a chunk
-    // (2048 bytes with int16_t)
+    // (2048 bytes with std::int16_t)
     static constexpr std::size_t DEFAULT_FFT_SIZE = 1024;
     static constexpr auto SAMPLING_RATE = 8000.0f;
 
@@ -74,7 +78,7 @@ private:
 
     void _fftAnalyzeChunk
     (
-        const std::vector<int16_t>& chunk,
+        const std::vector<std::int16_t>& chunk,
         float segmentStartTimeSeconds,
         std::vector<float>& staticChunkStartTimes
     );

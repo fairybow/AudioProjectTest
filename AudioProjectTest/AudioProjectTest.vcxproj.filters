@@ -42,9 +42,6 @@
     <None Include="notes\Notes.md">
       <Filter>Notes</Filter>
     </None>
-    <None Include="old\Old.md">
-      <Filter>Old</Filter>
-    </None>
     <None Include="notes\AVX2.md">
       <Filter>Notes</Filter>
     </None>
@@ -59,9 +56,6 @@
     <ClCompile Include="src\AudioAnalyzer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="old\FftwOLD.cpp">
-      <Filter>Old</Filter>
-    </ClCompile>
     <ClCompile Include="old\AudioAnalyzerOLD.cpp">
       <Filter>Old</Filter>
     </ClCompile>
@@ -75,9 +69,6 @@
     </ClInclude>
     <ClInclude Include="old\AudioAnalyzerOLD.h">
       <Filter>Old</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Avx2.h">
-      <Filter>Source Files\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

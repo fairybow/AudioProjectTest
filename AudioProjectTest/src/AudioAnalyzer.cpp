@@ -3,16 +3,39 @@
 #include "AudioAnalyzer.h"
 #include "Diagnostics.h"
 
+#include <algorithm>
 #include <cmath>
+#include <format>
 #include <fstream>
 #include <ios>
-#include <iostream> // temp?
-#include <algorithm>
+#include <string>
 
 #if defined(USE_AVX2)
 #pragma message("Using AVX2 SIMD.")
 #include <immintrin.h>
 #endif
+
+std::ostream& operator<<(std::ostream& os, const AudioAnalyzer::Analysis& a)
+{
+    constexpr auto format = \
+        "File: {}\nChunk length (seconds): {:.2f}\nStaticky chunk start times: [{}]";
+
+    // Format staticChunkStartTimes as a comma-separated list
+    std::string static_chunk_start_times{};
+    for (std::size_t i = 0; i < a.staticChunkStartTimes.size(); ++i)
+    {
+        if (i > 0) static_chunk_start_times += ", ";
+        static_chunk_start_times += std::format("{:.2f}", a.staticChunkStartTimes[i]);
+    }
+
+    return os << std::format
+    (
+        format,
+        a.file.string(),
+        a.chunkDurationSeconds,
+        static_chunk_start_times
+    );
+}
 
 AudioAnalyzer::AudioAnalyzer()
 {
@@ -111,6 +134,8 @@ void AudioAnalyzer::_processWithAvx2
     // Do this later
 }
 
+// Refine into smaller functions (potentially called from both this and AVX2
+// function)
 void AudioAnalyzer::_processWithoutAvx2
 (
     std::vector<Analysis>& analyses,
@@ -139,15 +164,15 @@ void AudioAnalyzer::_processWithoutAvx2
         raw_audio.seekg(0, std::ios::beg);
 
         // Calculate number of chunks
-        auto total_samples = raw_audio_size / sizeof(int16_t);
+        auto total_samples = raw_audio_size / sizeof(std::int16_t);
         auto chunks_count = total_samples / m_fftSize;
         auto has_remainder = (total_samples % m_fftSize) != 0;
 
         // Analyze full chunks and record start time (in seconds) of chunks with static
-        std::vector<int16_t> buffer(m_fftSize);
+        std::vector<std::int16_t> buffer(m_fftSize);
         for (std::size_t chunk_i = 0; chunk_i < chunks_count; ++chunk_i)
         {
-            raw_audio.read(reinterpret_cast<char*>(buffer.data()), m_fftSize * sizeof(int16_t));
+            raw_audio.read(reinterpret_cast<char*>(buffer.data()), m_fftSize * sizeof(std::int16_t));
             auto chunk_start_time = static_cast<float>(chunk_i * m_fftSize) / SAMPLING_RATE;
 
             _fftAnalyzeChunk
@@ -162,8 +187,8 @@ void AudioAnalyzer::_processWithoutAvx2
         if (has_remainder)
         {
             std::size_t remainder_samples = total_samples % m_fftSize;
-            std::vector<int16_t> remainder_buffer(m_fftSize, 0);
-            raw_audio.read(reinterpret_cast<char*>(remainder_buffer.data()), remainder_samples * sizeof(int16_t));
+            std::vector<std::int16_t> remainder_buffer(m_fftSize, 0);
+            raw_audio.read(reinterpret_cast<char*>(remainder_buffer.data()), remainder_samples * sizeof(std::int16_t));
             auto remainder_start_time = static_cast<float>(chunks_count * m_fftSize) / SAMPLING_RATE;
 
             _fftAnalyzeChunk
@@ -183,7 +208,7 @@ void AudioAnalyzer::_processWithoutAvx2
 
 void AudioAnalyzer::_fftAnalyzeChunk
 (
-    const std::vector<int16_t>& chunk,
+    const std::vector<std::int16_t>& chunk,
     float segmentStartTimeSeconds,
     std::vector<float>& staticChunkStartTimes
 )
