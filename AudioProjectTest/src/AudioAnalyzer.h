@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <ostream>
 #include <vector>
 
@@ -37,7 +38,7 @@ private:
     // Would it be fine to just use singleton and set benching on/off, or would
     // the added function calls (which aren't present when the macros are
     // no-ops) add up?
-    DX_BENCH(AudioAnalyzer); // Shut up, Intellisense
+    //DX_BENCH(AudioAnalyzer); // Shut up, Intellisense
 
     // FFT size represents the number of samples in a chunk
     // (2048 bytes with std::int16_t)
@@ -85,5 +86,11 @@ private:
         float segmentStartTimeSeconds,
         std::vector<float>& staticChunkStartTimes
     );
+
+    std::streamsize _sizeOf(std::ifstream& rawAudio) const;
+    void _prepareInputBuffer(const std::vector<std::int16_t>& chunk);
+    void _maybeZeroPadInputBuffer(const std::vector<std::int16_t>& chunk);
+    std::vector<float> _magnitudesFromOutputBuffer();
+    bool _haveStatic(const std::vector<float>& magnitudes) const;
 
 }; // class AudioAnalyzer

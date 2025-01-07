@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <format>
-#include <fstream>
 #include <ios>
 #include <string>
 
@@ -160,11 +159,11 @@ void AudioAnalyzer::_process
         }
 
         // Calculate raw audio stream size
-        raw_audio.seekg(0, std::ios::end);
-        std::streamsize raw_audio_size = raw_audio.tellg();
-        raw_audio.seekg(0, std::ios::beg);
+        auto raw_audio_size = _sizeOf(raw_audio);
 
         // Calculate number of chunks
+        // Before separating this off, we will need other variables in it
+        // (chunks_count, for example)...
         auto total_samples = raw_audio_size / sizeof(std::int16_t);
         auto chunks_count = total_samples / m_fftSize;
         auto has_remainder = (total_samples % m_fftSize) != 0;
@@ -217,8 +216,32 @@ void AudioAnalyzer::_fftAnalyzeChunk
     std::vector<float>& staticChunkStartTimes
 )
 {
+    _prepareInputBuffer(chunk);
+    _maybeZeroPadInputBuffer(chunk);
 
-    // Copy chunk data into FFT input buffer with scaling and Hann window
+    fftwf_execute(m_fftwPlan);
+
+    auto magnitudes = _magnitudesFromOutputBuffer();
+    if (_haveStatic(magnitudes))
+    {
+        staticChunkStartTimes.emplace_back(segmentStartTimeSeconds);
+    }
+}
+
+// Calculate raw audio stream size
+std::streamsize AudioAnalyzer::_sizeOf(std::ifstream& rawAudio) const
+{
+    rawAudio.seekg(0, std::ios::end);
+    std::streamsize raw_audio_size = rawAudio.tellg();
+    rawAudio.seekg(0, std::ios::beg);
+
+    return raw_audio_size;
+}
+
+// Copy chunk data into FFT input buffer with scaling and Hann window
+void AudioAnalyzer::_prepareInputBuffer(const std::vector<std::int16_t>& chunk)
+{
+
 #if !defined(USE_AVX2)
 
     for (std::size_t i = 0; i < chunk.size(); ++i)
@@ -256,8 +279,15 @@ void AudioAnalyzer::_fftAnalyzeChunk
 
 #endif // !defined(USE_AVX2)
 
-    // Zero-pad the remainder of the buffer if the chunk is smaller than
-    // m_fftSize
+}
+
+// Should I do a check here to avoid doing anything if the chunk doesn't
+// need padding? Or do check outside this function?
+// Zero-pad the remainder of the buffer if the chunk is smaller than
+// m_fftSize
+void AudioAnalyzer::_maybeZeroPadInputBuffer(const std::vector<std::int16_t>& chunk)
+{
+
 #if !defined(USE_AVX2)
 
     std::fill
@@ -284,10 +314,11 @@ void AudioAnalyzer::_fftAnalyzeChunk
 
 #endif // !defined(USE_AVX2)
 
-    // Execute the FFT plan
-    fftwf_execute(m_fftwPlan);
+}
 
-    // Analyze FFT output (magnitude calculation for each frequency bin)
+// Analyze FFT output (magnitude calculation for each frequency bin)
+std::vector<float> AudioAnalyzer::_magnitudesFromOutputBuffer()
+{
     std::vector<float> magnitudes(m_numFrequencyBins);
 
 #if !defined(USE_AVX2)
@@ -324,22 +355,22 @@ void AudioAnalyzer::_fftAnalyzeChunk
 
 #endif // !defined(USE_AVX2)
 
-    // Static detection logic placeholder (to be implemented later)
-    // For now, we assume a simple placeholder threshold
-    auto static_threshold = 1000.0f; // Placeholder value
+    return magnitudes;
+}
 
-    auto is_static = std::all_of
+bool AudioAnalyzer::_haveStatic(const std::vector<float>& magnitudes) const
+{
+    return std::all_of
     (
         magnitudes.begin(),
         magnitudes.end(),
         [=](float mag)
         {
+            // Static detection logic placeholder (to be implemented later)
+            // For now, we assume a simple placeholder threshold
+            constexpr auto static_threshold = 1000.0f; // Placeholder value
+
             return mag > static_threshold;
         }
     );
-
-    if (is_static)
-    {
-        staticChunkStartTimes.emplace_back(segmentStartTimeSeconds);
-    }
 }
