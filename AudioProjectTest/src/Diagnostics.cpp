@@ -1,10 +1,24 @@
 #include "Diagnostics.h"
 
 #include <filesystem>
+#include <iostream>
 #include <stdexcept>
 
 namespace Diagnostics
 {
+    Bench::Bench(const char* processName)
+        : m_processName(processName)
+        , m_start(std::chrono::steady_clock::now())
+    {
+    }
+
+    Bench::~Bench()
+    {
+        auto end = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - m_start);
+        std::cout << m_processName << " completed in " << duration.count() << " ms." << std::endl;
+    }
+
     void throwError
     (
         Error error,

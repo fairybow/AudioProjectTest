@@ -1,15 +1,8 @@
 #pragma once
 
-#if defined(DX_BENCH)
-
-#pragma message("Diagnostics: Benchmarking enabled.")
-
 #include <chrono>
-#include <iostream>
-
-#endif
-
 #include <format>
+#include <memory>
 
 // Separate logging/messaging namesapce
 // Include it for methods to print location
@@ -17,64 +10,71 @@
 
 // `std::source_location` doesn't allow us to obtain an unqualified function
 // signature like __FUNCTION__. (May need to adjust for platforms.)
-#define DX_THROW(error, message, ...)       \
-    Diagnostics::throwError                 \
-    (                                       \
-        error,                              \
-        __FILE__,                           \
-        __LINE__,                           \
-        __FUNCTION__,                       \
-        message,                            \
-        ##__VA_ARGS__                       \
+#define DX_THROW(error, message, ...)           \
+    Diagnostics::throwError                     \
+    (                                           \
+        error,                                  \
+        __FILE__,                               \
+        __LINE__,                               \
+        __FUNCTION__,                           \
+        message,                                \
+        ##__VA_ARGS__                           \
     )
 
-#define DX_THROW_INVALID_ARG(message, ...)  \
-    DX_THROW                                \
-    (                                       \
-        Diagnostics::InvalidArg,            \
-        message,                            \
-        ##__VA_ARGS__                       \
+#define DX_THROW_INVALID_ARG(message, ...)      \
+    DX_THROW                                    \
+    (                                           \
+        Diagnostics::InvalidArg,                \
+        message,                                \
+        ##__VA_ARGS__                           \
     )
 
-#define DX_THROW_OUT_OF_RANGE(message, ...) \
-    DX_THROW                                \
-    (                                       \
-        Diagnostics::OutOfRange,            \
-        message,                            \
-        ##__VA_ARGS__                       \
+#define DX_THROW_OUT_OF_RANGE(message, ...)     \
+    DX_THROW                                    \
+    (                                           \
+        Diagnostics::OutOfRange,                \
+        message,                                \
+        ##__VA_ARGS__                           \
     )
 
-#define DX_THROW_RUN_TIME(message, ...)     \
-    DX_THROW                                \
-    (                                       \
-        Diagnostics::RunTime,               \
-        message,                            \
-        ##__VA_ARGS__                       \
+#define DX_THROW_RUN_TIME(message, ...)         \
+    DX_THROW                                    \
+    (                                           \
+        Diagnostics::RunTime,                   \
+        message,                                \
+        ##__VA_ARGS__                           \
     )
 
-#if defined(DX_BENCH)
+#if defined(USE_DX_BENCH_MACROS)
 
-// Rework this idea. Add something to show lifetime. Can calculate/print in its dtor
+#define DX_BENCH(processName)                   \
+    std::unique_ptr<Diagnostics::Bench> DX_BENCH_##processName = std::make_unique<Diagnostics::Bench>(#processName)
 
-#define DX_BENCH_BLOCK(processName)                                                         \
-    auto dx_bench_operation_name = processName;                                             \
-    auto dx_bench_start_time = std::chrono::steady_clock::now()
+// Scope will naturally kill the unique_ptr (and its underlying pointer), but
+// just in case we want to kill the underlying pointer early, for some reason
+#define DX_BENCH_STOP(processName)              \
+    DX_BENCH_##processName.reset()
 
-#define DX_END_BENCH_BLOCK                                                                  \
-    auto dx_bench_duration = std::chrono::duration_cast<std::chrono::milliseconds>(         \
-        std::chrono::steady_clock::now() - dx_bench_start_time);                            \
-    std::cout << dx_bench_operation_name << " completed in " << dx_bench_duration.count()   \
-        << " ms." << std::endl
+#else // !defined(USE_DX_BENCH_MACROS)
 
-#else
+#define DX_BENCH(processName)
+#define DX_BENCH_STOP(processName)
 
-#define DX_BENCH_BLOCK(processName)
-#define DX_END_BENCH_BLOCK
-
-#endif
+#endif // defined(USE_DX_BENCH_MACROS)
 
 namespace Diagnostics
 {
+    class Bench
+    {
+    public:
+        explicit Bench(const char* processName = "Process");
+        virtual ~Bench();
+
+    private:
+        const char* m_processName;
+        std::chrono::steady_clock::time_point m_start;
+    };
+
     enum Error
     {
         InvalidArg,

@@ -1,8 +1,4 @@
-#define DX_BENCH // Temp
-#define USE_AVX2 // Temp
-
 #include "AudioAnalyzer.h"
-#include "Diagnostics.h"
 
 #include <algorithm>
 #include <cmath>
@@ -64,13 +60,10 @@ AudioAnalyzer::Analysis AudioAnalyzer::process(const std::filesystem::path& inFi
 
 std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<std::filesystem::path>& inFiles)
 {
-    DX_BENCH_BLOCK("Processing");
+    DX_BENCH(Processing);
 
     std::vector<Analysis> analyses(inFiles.size());
     _process(analyses, inFiles);
-
-    DX_END_BENCH_BLOCK;
-
     return analyses;
 }
 
@@ -147,7 +140,8 @@ void AudioAnalyzer::_process
         std::vector<float> static_chunk_start_times{}; // Eventual product
         auto& in_file = inFiles[i];
 
-        // Right now, we're not stopping or handling failure in any way
+        // Should we throw or just continue (and add an error enum to result
+        // Analysis for this file, or something)
         if (!std::filesystem::exists(in_file))
         {
             DX_THROW_RUN_TIME("\"{}\" does not exist.", in_file.string());

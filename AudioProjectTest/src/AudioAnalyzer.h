@@ -1,5 +1,10 @@
 #pragma once
 
+#define USE_DX_BENCH_MACROS // Temp
+#define USE_AVX2 // Temp
+
+#include "Diagnostics.h"
+
 #include "fftw3.h"
 
 #include <cstddef>
@@ -29,6 +34,11 @@ public:
     std::vector<Analysis> process(const std::vector<std::filesystem::path>& inFiles);
 
 private:
+    // Would it be fine to just use singleton and set benching on/off, or would
+    // the added function calls (which aren't present when the macros are
+    // no-ops) add up?
+    DX_BENCH(AudioAnalyzer); // Shut up, Intellisense
+
     // FFT size represents the number of samples in a chunk
     // (2048 bytes with std::int16_t)
     static constexpr const std::size_t DEFAULT_FFT_SIZE = 1024;
