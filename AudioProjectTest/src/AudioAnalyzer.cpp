@@ -1,4 +1,5 @@
-#define USE_AVX2 // Temp
+#define DX_BENCH // Temp
+//#define USE_AVX2 // Temp
 
 #include "AudioAnalyzer.h"
 #include "Diagnostics.h"
@@ -60,8 +61,13 @@ AudioAnalyzer::Analysis AudioAnalyzer::process(const std::filesystem::path& inFi
 
 std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<std::filesystem::path>& inFiles)
 {
+    DX_START_BENCH_BLOCK("Processing");
+
     std::vector<Analysis> analyses(inFiles.size());
     _process(analyses, inFiles);
+
+    DX_END_BENCH_BLOCK;
+
     return analyses;
 }
 
@@ -210,11 +216,45 @@ void AudioAnalyzer::_fftAnalyzeChunk
     std::vector<float>& staticChunkStartTimes
 )
 {
+
+#if !defined(USE_AVX2)
+
     // Copy chunk data into FFT input buffer with scaling and Hann window
     for (std::size_t i = 0; i < chunk.size(); ++i)
     {
         m_fftInputBuffer[i] = chunk[i] * m_window[i];
     }
+
+#else // defined(USE_AVX2)
+
+    const auto chunk_size = chunk.size();
+    std::size_t i = 0;
+
+    // Process 8 elements at a time
+    for (; i + 7 < chunk_size; i += 8)
+    {
+        // Load 8 int16_t values and extend to int32_t
+        __m128i chunk_vals_16 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&chunk[i]));
+        __m256 chunk_vals = _mm256_cvtepi32_ps(_mm256_cvtepi16_epi32(chunk_vals_16));
+
+        // Load Hann window coefficients
+        auto window_vals = _mm256_loadu_ps(&m_window[i]);
+
+        // Perform element-wise multiplication
+        auto result = _mm256_mul_ps(chunk_vals, window_vals);
+
+        // Store the results
+        _mm256_storeu_ps(&m_fftInputBuffer[i], result);
+    }
+
+    // Process remaining elements
+    for (; i < chunk_size; ++i)
+    {
+        m_fftInputBuffer[i] = chunk[i] * m_window[i];
+    }
+
+
+#endif
 
     // Zero-pad the remainder of the buffer if the chunk is smaller than
     // m_fftSize

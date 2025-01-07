@@ -1,5 +1,14 @@
 #pragma once
 
+#if defined(DX_BENCH)
+
+#pragma message("Diagnostics: Benchmarking enabled.")
+
+#include <chrono>
+#include <iostream>
+
+#endif
+
 #include <format>
 
 // Separate logging/messaging namesapce
@@ -42,6 +51,27 @@
         message,                        \
         ##__VA_ARGS__                   \
     )
+
+#if defined(DX_BENCH)
+
+#define DX_START_BENCH_BLOCK(operationName)                                             \
+    auto dx_bench_operation_name = operationName;                                       \
+    auto dx_bench_start_time = std::chrono::steady_clock::now()
+
+#define DX_END_BENCH_BLOCK                                                              \
+    auto dx_bench_end_time = std::chrono::steady_clock::now();                          \
+    auto dx_bench_duration = std::chrono::duration_cast<std::chrono::milliseconds>(     \
+        dx_bench_end_time - dx_bench_start_time);                                       \
+    std::cout << dx_bench_operation_name << " completed in "                            \
+        << dx_bench_duration.count()                                                    \
+        << " ms." << std::endl
+
+#else
+
+#define DX_START_BENCH_BLOCK(operationName)
+#define DX_END_BENCH_BLOCK
+
+#endif
 
 namespace Diagnostics
 {
