@@ -1,5 +1,5 @@
 #define DX_BENCH // Temp
-//#define USE_AVX2 // Temp
+#define USE_AVX2 // Temp
 
 #include "AudioAnalyzer.h"
 #include "Diagnostics.h"
@@ -224,9 +224,9 @@ void AudioAnalyzer::_fftAnalyzeChunk
 )
 {
 
+    // Copy chunk data into FFT input buffer with scaling and Hann window
 #if !defined(USE_AVX2)
 
-    // Copy chunk data into FFT input buffer with scaling and Hann window
     for (std::size_t i = 0; i < chunk.size(); ++i)
     {
         m_fftInputBuffer[i] = chunk[i] * m_window[i];
@@ -241,8 +241,8 @@ void AudioAnalyzer::_fftAnalyzeChunk
     for (; i + 7 < chunk_size; i += 8)
     {
         // Load 8 int16_t values and extend to int32_t
-        __m128i chunk_vals_16 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&chunk[i]));
-        __m256 chunk_vals = _mm256_cvtepi32_ps(_mm256_cvtepi16_epi32(chunk_vals_16));
+        auto chunk_vals_16 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&chunk[i]));
+        auto chunk_vals = _mm256_cvtepi32_ps(_mm256_cvtepi16_epi32(chunk_vals_16));
 
         // Load Hann window coefficients
         auto window_vals = _mm256_loadu_ps(&m_window[i]);
@@ -264,6 +264,8 @@ void AudioAnalyzer::_fftAnalyzeChunk
 
     // Zero-pad the remainder of the buffer if the chunk is smaller than
     // m_fftSize
+#if !defined(USE_AVX2)
+
     std::fill
     (
         m_fftInputBuffer + chunk.size(),
@@ -271,11 +273,31 @@ void AudioAnalyzer::_fftAnalyzeChunk
         0.0f
     );
 
+#else // defined(USE_AVX2)
+
+    auto zero_vec = _mm256_setzero_ps();
+    std::size_t j = chunk.size();
+    for (; j + 7 < m_fftSize; j += 8)
+    {
+        _mm256_storeu_ps(&m_fftInputBuffer[j], zero_vec);
+    }
+
+    // Process remaining elements
+    for (; j < m_fftSize; ++j)
+    {
+        m_fftInputBuffer[j] = 0.0f;
+    }
+
+#endif // !defined(USE_AVX2)
+
     // Execute the FFT plan
     fftwf_execute(m_fftwPlan);
 
     // Analyze FFT output (magnitude calculation for each frequency bin)
     std::vector<float> magnitudes(m_numFrequencyBins);
+
+#if !defined(USE_AVX2)
+
     for (std::size_t k = 0; k < m_numFrequencyBins; ++k)
     {
         auto real = m_fftOutputBuffer[k][0];
@@ -283,11 +305,36 @@ void AudioAnalyzer::_fftAnalyzeChunk
         magnitudes[k] = std::sqrt((real * real) + (imag * imag));
     }
 
+#else // defined(USE_AVX2)
+
+    std::size_t k = 0;
+    for (; k + 7 < m_numFrequencyBins; k += 8)
+    {
+        auto real_vals = _mm256_loadu_ps(&m_fftOutputBuffer[k][0]);
+        auto imag_vals = _mm256_loadu_ps(&m_fftOutputBuffer[k][1]);
+
+        auto real_sq = _mm256_mul_ps(real_vals, real_vals);
+        auto imag_sq = _mm256_mul_ps(imag_vals, imag_vals);
+
+        auto magnitude = _mm256_sqrt_ps(_mm256_add_ps(real_sq, imag_sq));
+        _mm256_storeu_ps(&magnitudes[k], magnitude);
+    }
+
+    // Process remaining elements
+    for (; k < m_numFrequencyBins; ++k)
+    {
+        auto real = m_fftOutputBuffer[k][0];
+        auto imag = m_fftOutputBuffer[k][1];
+        magnitudes[k] = std::sqrt((real * real) + (imag * imag));
+    }
+
+#endif // !defined(USE_AVX2)
+
     // Static detection logic placeholder (to be implemented later)
     // For now, we assume a simple placeholder threshold
     auto static_threshold = 1000.0f; // Placeholder value
 
-    bool is_static = std::all_of
+    auto is_static = std::all_of
     (
         magnitudes.begin(),
         magnitudes.end(),
