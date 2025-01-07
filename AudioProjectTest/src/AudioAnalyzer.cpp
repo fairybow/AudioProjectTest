@@ -371,7 +371,8 @@ bool AudioAnalyzer::_haveStatic(const std::vector<float>& magnitudes) const
         {
             // Static detection logic placeholder (to be implemented later)
             // For now, we assume a simple placeholder threshold
-            constexpr auto static_threshold = 1000.0f; // Placeholder value
+            constexpr auto static_threshold = 1000.0f;
+            // ^ ALTHOUGH, seems to be working well for a placeholder.
             return mag > static_threshold;
         }
     );
