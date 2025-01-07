@@ -238,7 +238,6 @@ std::streamsize AudioAnalyzer::_sizeOf(std::ifstream& rawAudio) const
     rawAudio.seekg(0, std::ios::end);
     std::streamsize raw_audio_size = rawAudio.tellg();
     rawAudio.seekg(0, std::ios::beg);
-
     return raw_audio_size;
 }
 
