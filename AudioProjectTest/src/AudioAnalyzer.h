@@ -51,6 +51,11 @@ private:
     // Windowing
     //--------------------------------------------------------------------------
 
+    // If the signal has abrupt changes at the boundaries of each chunk (e.g.,
+    // due to no overlap), these discontinuities introduce high-frequency
+    // artifacts, known as spectral leakage. So, I believe that without a window
+    // we will always detect static in a chunk at its edges.
+
     std::vector<float> m_window = std::vector<float>(m_fftSize);
     // ^ Hard code for now. Allow changing later.
 

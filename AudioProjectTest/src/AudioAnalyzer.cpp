@@ -245,7 +245,7 @@ std::streamsize AudioAnalyzer::_sizeOf(std::ifstream& rawAudio) const
 // Copy chunk data into FFT input buffer with scaling and Hann window
 void AudioAnalyzer::_prepareInputBuffer(const std::vector<std::int16_t>& chunk)
 {
-    // We aren't overlapping right now, so I don't think we need a window!
+
 #if !defined(USE_AVX2)
 
     for (std::size_t i = 0; i < chunk.size(); ++i)
