@@ -90,7 +90,7 @@ void AudioAnalyzer::_freeFftw()
 {
     // If we only call this in destructor, then I guess we don't need checks or
     // nullptr assignment
-    if (m_fftwPlan)
+    /*if (m_fftwPlan)
     {
         fftwf_destroy_plan(m_fftwPlan);
         m_fftwPlan = nullptr;
@@ -106,7 +106,11 @@ void AudioAnalyzer::_freeFftw()
     {
         fftwf_free(m_fftInputBuffer);
         m_fftInputBuffer = nullptr;
-    }
+    }*/
+
+    fftwf_destroy_plan(m_fftwPlan);
+    fftwf_free(m_fftOutputBuffer);
+    fftwf_free(m_fftInputBuffer);
 }
 
 void AudioAnalyzer::_initWindow()
@@ -369,7 +373,6 @@ bool AudioAnalyzer::_haveStatic(const std::vector<float>& magnitudes) const
             // Static detection logic placeholder (to be implemented later)
             // For now, we assume a simple placeholder threshold
             constexpr auto static_threshold = 1000.0f; // Placeholder value
-
             return mag > static_threshold;
         }
     );
