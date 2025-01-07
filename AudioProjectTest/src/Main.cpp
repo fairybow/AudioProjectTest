@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
     {
         AudioAnalyzer analyzer{};
         auto analysis = analyzer.process("C:\\Dev\\sample-audio-file-human-then-static.raw");
-        std::cout << analysis;
+        std::cout << analysis << std::endl;
 
         // Test vector of paths & simd later
         //auto analysis = analyzer.process(std::vector<std::filesystem::path>{ "C:\\Dev\\sample-audio-file-human-then-static.raw", "C:\\Dev\\sample-audio-file-human-then-static.raw", "C:\\Dev\\sample-audio-file-human-then-static.raw" });

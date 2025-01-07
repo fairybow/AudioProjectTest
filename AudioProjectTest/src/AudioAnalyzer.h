@@ -31,7 +31,7 @@ public:
 private:
     // FFT size represents the number of samples in a chunk
     // (2048 bytes with std::int16_t)
-    static constexpr std::size_t DEFAULT_FFT_SIZE = 1024;
+    static constexpr const std::size_t DEFAULT_FFT_SIZE = 1024;
     static constexpr auto SAMPLING_RATE = 8000.0f;
 
     std::size_t m_fftSize = DEFAULT_FFT_SIZE;
@@ -40,7 +40,6 @@ private:
     // Windowing
     //--------------------------------------------------------------------------
 
-    static constexpr float PI = 3.141593f; // Accurate enough?
     std::vector<float> m_window = std::vector<float>(m_fftSize);
     // ^ Hard code for now. Allow changing later.
 

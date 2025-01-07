@@ -12,10 +12,13 @@
 #include <string>
 
 #if defined(USE_AVX2)
+
 // AVX2 can accelerate operations involving repetitive mathematical computations
 // on vectors.
 #pragma message("Using AVX2 SIMD.")
+
 #include <immintrin.h>
+
 #endif
 
 std::ostream& operator<<(std::ostream& os, const AudioAnalyzer::Analysis& a)
@@ -61,7 +64,7 @@ AudioAnalyzer::Analysis AudioAnalyzer::process(const std::filesystem::path& inFi
 
 std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<std::filesystem::path>& inFiles)
 {
-    DX_START_BENCH_BLOCK("Processing");
+    DX_BENCH_BLOCK("Processing");
 
     std::vector<Analysis> analyses(inFiles.size());
     _process(analyses, inFiles);
@@ -117,10 +120,13 @@ void AudioAnalyzer::_freeFftw()
 void AudioAnalyzer::_initWindow()
 {
     // Hann window:
+
+    constexpr auto pi = 3.141593f; // Accurate enough?
+
     for (auto i = 0; i < m_fftSize; ++i)
     {
         // Calculate the cosine of the normalized angular position for index i
-        auto cosine = std::cos((2.0f * PI * i) / (m_fftSize - 1));
+        auto cosine = std::cos((2.0f * pi * i) / (m_fftSize - 1));
 
         // Calculate the Hann window coefficient for index i
         m_window[i] = 0.5f * (1.0f - cosine);
@@ -144,19 +150,19 @@ void AudioAnalyzer::_process
         // Right now, we're not stopping or handling failure in any way
         if (!std::filesystem::exists(in_file))
         {
-            DX_THROW_RTE("\"{}\" does not exist.", in_file.string());
+            DX_THROW_RUN_TIME("\"{}\" does not exist.", in_file.string());
         }
 
         if (!std::filesystem::is_regular_file(in_file))
         {
-            DX_THROW_RTE("\"{}\" is not a regular file.", in_file.string());
+            DX_THROW_RUN_TIME("\"{}\" is not a regular file.", in_file.string());
         }
 
         std::ifstream raw_audio(in_file, std::ios::binary);
 
         if (!raw_audio)
         {
-            DX_THROW_RTE("Unable to open file at \"{}\"", in_file.string());
+            DX_THROW_RUN_TIME("Unable to open file at \"{}\"", in_file.string());
         }
 
         // Calculate raw audio stream size
@@ -201,9 +207,10 @@ void AudioAnalyzer::_process
         }
 
         // Aggregate results
-        analyses[i].file = in_file;
-        analyses[i].chunkDurationSeconds = static_cast<float>(m_fftSize) / SAMPLING_RATE;
-        analyses[i].staticChunkStartTimes = static_chunk_start_times;
+        auto& analysis = analyses[i];
+        analysis.file = in_file;
+        analysis.chunkDurationSeconds = static_cast<float>(m_fftSize) / SAMPLING_RATE;
+        analysis.staticChunkStartTimes = static_chunk_start_times;
     }
 }
 
@@ -253,8 +260,7 @@ void AudioAnalyzer::_fftAnalyzeChunk
         m_fftInputBuffer[i] = chunk[i] * m_window[i];
     }
 
-
-#endif
+#endif // !defined(USE_AVX2)
 
     // Zero-pad the remainder of the buffer if the chunk is smaller than
     // m_fftSize

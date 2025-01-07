@@ -17,58 +17,58 @@
 
 // `std::source_location` doesn't allow us to obtain an unqualified function
 // signature like __FUNCTION__. (May need to adjust for platforms.)
-#define DX_THROW(error, message, ...)   \
-    Diagnostics::throwError             \
-    (                                   \
-        error,                          \
-        __FILE__,                       \
-        __LINE__,                       \
-        __FUNCTION__,                   \
-        message,                        \
-        ##__VA_ARGS__                   \
+#define DX_THROW(error, message, ...)       \
+    Diagnostics::throwError                 \
+    (                                       \
+        error,                              \
+        __FILE__,                           \
+        __LINE__,                           \
+        __FUNCTION__,                       \
+        message,                            \
+        ##__VA_ARGS__                       \
     )
 
-#define DX_THROW_IAE(message, ...)      \
-    DX_THROW                            \
-    (                                   \
-        Diagnostics::InvalidArg,        \
-        message,                        \
-        ##__VA_ARGS__                   \
+#define DX_THROW_INVALID_ARG(message, ...)  \
+    DX_THROW                                \
+    (                                       \
+        Diagnostics::InvalidArg,            \
+        message,                            \
+        ##__VA_ARGS__                       \
     )
 
-#define DX_THROW_OORE(message, ...)     \
-    DX_THROW                            \
-    (                                   \
-        Diagnostics::OutOfRange,        \
-        message,                        \
-        ##__VA_ARGS__                   \
+#define DX_THROW_OUT_OF_RANGE(message, ...) \
+    DX_THROW                                \
+    (                                       \
+        Diagnostics::OutOfRange,            \
+        message,                            \
+        ##__VA_ARGS__                       \
     )
 
-#define DX_THROW_RTE(message, ...)      \
-    DX_THROW                            \
-    (                                   \
-        Diagnostics::RunTime,           \
-        message,                        \
-        ##__VA_ARGS__                   \
+#define DX_THROW_RUN_TIME(message, ...)     \
+    DX_THROW                                \
+    (                                       \
+        Diagnostics::RunTime,               \
+        message,                            \
+        ##__VA_ARGS__                       \
     )
 
 #if defined(DX_BENCH)
 
-#define DX_START_BENCH_BLOCK(operationName)                                             \
-    auto dx_bench_operation_name = operationName;                                       \
+// Rework this idea. Add something to show lifetime. Can calculate/print in its dtor
+
+#define DX_BENCH_BLOCK(processName)                                                         \
+    auto dx_bench_operation_name = processName;                                             \
     auto dx_bench_start_time = std::chrono::steady_clock::now()
 
-#define DX_END_BENCH_BLOCK                                                              \
-    auto dx_bench_end_time = std::chrono::steady_clock::now();                          \
-    auto dx_bench_duration = std::chrono::duration_cast<std::chrono::milliseconds>(     \
-        dx_bench_end_time - dx_bench_start_time);                                       \
-    std::cout << dx_bench_operation_name << " completed in "                            \
-        << dx_bench_duration.count()                                                    \
+#define DX_END_BENCH_BLOCK                                                                  \
+    auto dx_bench_duration = std::chrono::duration_cast<std::chrono::milliseconds>(         \
+        std::chrono::steady_clock::now() - dx_bench_start_time);                            \
+    std::cout << dx_bench_operation_name << " completed in " << dx_bench_duration.count()   \
         << " ms." << std::endl
 
 #else
 
-#define DX_START_BENCH_BLOCK(operationName)
+#define DX_BENCH_BLOCK(processName)
 #define DX_END_BENCH_BLOCK
 
 #endif
