@@ -6,6 +6,7 @@
 #define USE_LOGGING
 
 #include "Diagnostics.h"
+#include "Windowing.h"
 
 #include "fftw3.h"
 
@@ -24,6 +25,7 @@ public:
         std::filesystem::path file{};
         // Window type
         std::size_t fftSize = 0;
+        Windowing::Window windowType = Windowing::None;
         float overlapDecPercent = 0.0f;
 
         // FFT size determines the time resolution of static detection
@@ -38,6 +40,7 @@ public:
     AudioAnalyzer
     (
         std::size_t fftSize = DEFAULT_FFT_SIZE,
+        Windowing::Window windowType = DEFAULT_WINDOW,
         float overlap = DEFAULT_OVERLAP,
         const std::filesystem::path& wisdomPath = {}
     );
@@ -71,9 +74,14 @@ private:
     // due to no overlap), these discontinuities introduce high-frequency
     // artifacts, known as spectral leakage. So, I believe that without a window
     // we will always detect static in a chunk at its edges.
+    static constexpr auto DEFAULT_WINDOW = Windowing::Hann;
     static constexpr auto DEFAULT_OVERLAP = 0.5f;
+
     float m_overlapDecPercent;
-    std::vector<float> m_window;
+    Windowing::Window m_windowType;
+    bool m_useWindowing = true;
+    std::vector<float> m_window{};
+
     void _initWindow();
 
     //--------------------------------------------------------------------------
