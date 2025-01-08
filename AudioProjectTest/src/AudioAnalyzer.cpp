@@ -19,10 +19,15 @@
 
 std::ostream& operator<<(std::ostream& os, const AudioAnalyzer::Analysis& a)
 {
-    constexpr auto format = \
-        "File: {}\nFFT Size: {}\nOverlap: {}\nChunk length (seconds): {:.2f}\nStaticky chunk start times: [{}]";
+    constexpr auto format =                     \
+        "File: {}\n"                            \
+        "FFT Size : {}\n"                       \
+        "Overlap: {}\n"                         \
+        "Chunk length(seconds) : {:.2f}\n"      \
+        "Staticky chunk start times : [{}]";
 
     // Format staticChunkStartTimes as a comma-separated list
+    // Silo, change to avoid repeat allocations? Worth it?
     std::string static_chunk_start_times{};
     for (std::size_t i = 0; i < a.staticChunkStartTimes.size(); ++i)
     {
@@ -35,7 +40,7 @@ std::ostream& operator<<(std::ostream& os, const AudioAnalyzer::Analysis& a)
         format,
         a.file.string(),
         a.fftSize,
-        a.overlap,
+        std::format("{}%", a.overlapDecPercent * 100.0f),
         a.chunkDurationSeconds,
         static_chunk_start_times
     );
@@ -49,7 +54,7 @@ AudioAnalyzer::AudioAnalyzer
 )
     : m_fftSize(std::max(std::size_t(1), fftSize))
     , m_window(std::vector<float>(m_fftSize))
-    , m_overlap(std::clamp(overlap, 0.0f, 0.9f))
+    , m_overlapDecPercent(std::clamp(overlap, 0.0f, 0.9f))
     , m_wisdomPath(wisdomPath)
 {
     _initFftw();
@@ -235,7 +240,7 @@ void AudioAnalyzer::_process
         // Calculate number of chunks
         // Before separating this off, we will need other variables in it
         // (chunks_count, for example)...
-        auto hop_size = static_cast<std::size_t>(m_fftSize * (1.0f - m_overlap));
+        auto hop_size = static_cast<std::size_t>(m_fftSize * (1.0f - m_overlapDecPercent));
         auto total_samples = raw_audio_size / sizeof(std::int16_t);
 
         // Handle edge case where total_samples < m_fftSize
@@ -249,7 +254,7 @@ void AudioAnalyzer::_process
         }
 
         std::vector<std::int16_t> buffer(m_fftSize);
-        
+
         if (chunks_count == 1)
         {
             raw_audio.read
@@ -327,7 +332,7 @@ void AudioAnalyzer::_process
         {
             in_file,
             m_fftSize,
-            m_overlap,
+            m_overlapDecPercent,
             static_cast<float>(m_fftSize) / SAMPLING_RATE,
             static_chunk_start_times
         };

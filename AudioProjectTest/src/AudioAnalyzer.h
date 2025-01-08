@@ -24,7 +24,7 @@ public:
         std::filesystem::path file{};
         // Window type
         std::size_t fftSize = 0;
-        float overlap = 0.0f;
+        float overlapDecPercent = 0.0f;
 
         // FFT size determines the time resolution of static detection
         float chunkDurationSeconds = 0.0f;
@@ -72,7 +72,7 @@ private:
     // artifacts, known as spectral leakage. So, I believe that without a window
     // we will always detect static in a chunk at its edges.
     static constexpr auto DEFAULT_OVERLAP = 0.5f;
-    float m_overlap;
+    float m_overlapDecPercent;
     std::vector<float> m_window;
     void _initWindow();
 
