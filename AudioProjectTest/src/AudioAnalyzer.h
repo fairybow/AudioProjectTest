@@ -32,7 +32,7 @@ public:
         friend std::ostream& operator<<(std::ostream&, const Analysis&);
     };
 
-    AudioAnalyzer();
+    AudioAnalyzer(std::size_t fftSize = DEFAULT_FFT_SIZE, float overlap = DEFAULT_OVERLAP);
     virtual ~AudioAnalyzer();
 
     Analysis process(const std::filesystem::path& inFile);
@@ -47,9 +47,9 @@ private:
     // FFT size represents the number of samples in a chunk
     // (2048 bytes with std::int16_t)
     static constexpr const std::size_t DEFAULT_FFT_SIZE = 1024;
-    static constexpr auto SAMPLING_RATE = 8000.0f;
+    std::size_t m_fftSize;
 
-    std::size_t m_fftSize = DEFAULT_FFT_SIZE;
+    static constexpr auto SAMPLING_RATE = 8000.0f;
 
     //--------------------------------------------------------------------------
     // Windowing
@@ -59,10 +59,9 @@ private:
     // due to no overlap), these discontinuities introduce high-frequency
     // artifacts, known as spectral leakage. So, I believe that without a window
     // we will always detect static in a chunk at its edges.
-
-    std::vector<float> m_window = std::vector<float>(m_fftSize);
-    // ^ Hard code for now. Allow changing later.
-
+    static constexpr auto DEFAULT_OVERLAP = 0.5f;
+    float m_overlap;
+    std::vector<float> m_window;
     void _initWindow();
 
     //--------------------------------------------------------------------------

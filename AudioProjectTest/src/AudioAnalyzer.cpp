@@ -41,7 +41,10 @@ std::ostream& operator<<(std::ostream& os, const AudioAnalyzer::Analysis& a)
     );
 }
 
-AudioAnalyzer::AudioAnalyzer()
+AudioAnalyzer::AudioAnalyzer(std::size_t fftSize, float overlap)
+    : m_fftSize(fftSize)
+    , m_window(std::vector<float>(m_fftSize))
+    , m_overlap(overlap)
 {
     // Load the wisdom file here?
 
@@ -401,7 +404,7 @@ bool AudioAnalyzer::_haveStatic(const std::vector<float>& magnitudes) const
     (
         magnitudes.begin(),
         magnitudes.end(),
-        [=](float mag)
+        [](float mag)
         {
             // Static detection logic placeholder (to be implemented later)
             // For now, we assume a simple placeholder threshold
