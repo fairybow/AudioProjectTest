@@ -209,7 +209,7 @@ void AudioAnalyzer::_process
         // (chunks_count, for example)...
         auto hop_size = static_cast<std::size_t>(m_fftSize * (1.0f - m_overlap));
         auto total_samples = raw_audio_size / sizeof(std::int16_t);
-        
+
         // Handle edge case where total_samples < m_fftSize
         auto chunks_count = (total_samples > m_fftSize)
             ? ((total_samples - m_fftSize) / hop_size + 1)
@@ -233,6 +233,7 @@ void AudioAnalyzer::_process
             );
 
             // Seek back to account for overlap
+            // Sliding buffer instead?
             raw_audio.seekg(-static_cast<std::streamoff>(m_fftSize - hop_size) * sizeof(std::int16_t), std::ios::cur);
         }
 
@@ -253,12 +254,14 @@ void AudioAnalyzer::_process
         }
 
         // Aggregate results
-        auto& analysis = analyses[i];
-        analysis.file = in_file;
-        analysis.fftSize = m_fftSize;
-        analysis.overlap = m_overlap;
-        analysis.chunkDurationSeconds = static_cast<float>(m_fftSize) / SAMPLING_RATE;
-        analysis.staticChunkStartTimes = static_chunk_start_times;
+        analyses[i] =
+        {
+            in_file,
+            m_fftSize,
+            m_overlap,
+            static_cast<float>(m_fftSize) / SAMPLING_RATE,
+            static_chunk_start_times
+        };
     }
 }
 
