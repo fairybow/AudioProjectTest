@@ -42,6 +42,9 @@
     <ClInclude Include="src\Logging.h" />
     <ClInclude Include="src\Windowing.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="CMakeLists.txt" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>

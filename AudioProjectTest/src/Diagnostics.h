@@ -53,12 +53,12 @@
 
 #if defined(USE_DX_BENCH_MACROS)
 
-#define DX_BENCH(processName)                   \
+#define DX_BENCH(processName)           \
     std::unique_ptr<Diagnostics::Bench> DX_BENCH_##processName = std::make_unique<Diagnostics::Bench>(#processName)
 
 // Scope will naturally kill the unique_ptr (and its underlying pointer), but
 // just in case we want to kill the underlying pointer early, for some reason
-#define DX_BENCH_STOP(processName)              \
+#define DX_BENCH_STOP(processName)      \
     DX_BENCH_##processName.reset()
 
 #else // !defined(USE_DX_BENCH_MACROS)
