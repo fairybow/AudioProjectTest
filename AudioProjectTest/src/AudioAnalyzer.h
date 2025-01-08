@@ -35,7 +35,15 @@ public:
         friend std::ostream& operator<<(std::ostream&, const Analysis&);
     };
 
-    AudioAnalyzer(std::size_t fftSize = DEFAULT_FFT_SIZE, float overlap = DEFAULT_OVERLAP);
+    AudioAnalyzer
+    (
+        std::size_t fftSize = DEFAULT_FFT_SIZE,
+        float overlap = DEFAULT_OVERLAP,
+        const std::filesystem::path& wisdomPath = {}
+    );
+
+    AudioAnalyzer(const std::filesystem::path& wisdomPath);
+
     virtual ~AudioAnalyzer();
 
     Analysis process(const std::filesystem::path& inFile);
@@ -52,6 +60,7 @@ private:
     static constexpr const std::size_t DEFAULT_FFT_SIZE = 1024;
     std::size_t m_fftSize;
 
+    // Adjustable?
     static constexpr auto SAMPLING_RATE = 8000.0f;
 
     //--------------------------------------------------------------------------
@@ -71,8 +80,7 @@ private:
     // FFTW
     //--------------------------------------------------------------------------
 
-    std::filesystem::path m_wisdomPath = "C:\\Dev\\fftw_wisdom.dat";
-    // ^ Configurable later
+    std::filesystem::path m_wisdomPath;
 
     std::size_t m_numFrequencyBins = 0;
     float* m_fftInputBuffer = nullptr;
@@ -86,6 +94,12 @@ private:
     // Processing
     //--------------------------------------------------------------------------
 
+    enum class IsLastChunk
+    {
+        No = 0,
+        Yes
+    };
+
     void _process
     (
         std::vector<Analysis>& analyses,
@@ -96,12 +110,13 @@ private:
     (
         const std::vector<std::int16_t>& chunk,
         float segmentStartTimeSeconds,
-        std::vector<float>& staticChunkStartTimes
+        std::vector<float>& staticChunkStartTimes,
+        IsLastChunk isLastChunk = {}
     );
 
     std::streamsize _sizeOf(std::ifstream& rawAudio) const;
     void _prepareInputBuffer(const std::vector<std::int16_t>& chunk);
-    void _maybeZeroPadInputBuffer(const std::vector<std::int16_t>& chunk);
+    void _zeroPadInputBuffer(const std::vector<std::int16_t>& chunk);
     std::vector<float> _magnitudesFromOutputBuffer();
     bool _haveStatic(const std::vector<float>& magnitudes) const;
 
