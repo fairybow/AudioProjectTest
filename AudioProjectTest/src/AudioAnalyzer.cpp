@@ -166,6 +166,8 @@ void AudioAnalyzer::_initWindow()
     }
 }
 
+// Parallelize FFT Computation?
+
 // Find common elements later
 // Refine into smaller functions (potentially called from both this and AVX2
 // function)
@@ -205,12 +207,18 @@ void AudioAnalyzer::_process
         // Calculate number of chunks
         // Before separating this off, we will need other variables in it
         // (chunks_count, for example)...
+        auto hop_size = static_cast<std::size_t>(m_fftSize * (1.0f - m_overlap));
         auto total_samples = raw_audio_size / sizeof(std::int16_t);
-        auto chunks_count = total_samples / m_fftSize;
-        auto has_remainder = (total_samples % m_fftSize) != 0;
+        
+        // Handle edge case where total_samples < m_fftSize
+        auto chunks_count = (total_samples > m_fftSize)
+            ? ((total_samples - m_fftSize) / hop_size + 1)
+            : 1;
+
+        // Determine if there's a remainder based on the hop_size
+        auto has_remainder = (total_samples > (chunks_count * hop_size));
 
         // Analyze full chunks and record start time (in seconds) of chunks with static
-        auto hop_size = static_cast<std::size_t>(m_fftSize * (1.0f - m_overlap));
         std::vector<std::int16_t> buffer(m_fftSize);
         for (std::size_t chunk_i = 0; chunk_i < chunks_count; ++chunk_i)
         {
@@ -227,8 +235,6 @@ void AudioAnalyzer::_process
             // Seek back to account for overlap
             raw_audio.seekg(-static_cast<std::streamoff>(m_fftSize - hop_size) * sizeof(std::int16_t), std::ios::cur);
         }
-
-        // GO BACK BRANCH AND CHECK RESULTS AND THEN COME BACK HERE AND COMPARE WITH USING HOP!!!!!!
 
         // Analyze remainder
         if (has_remainder)
