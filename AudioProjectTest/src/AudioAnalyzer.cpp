@@ -42,12 +42,10 @@ std::ostream& operator<<(std::ostream& os, const AudioAnalyzer::Analysis& a)
 }
 
 AudioAnalyzer::AudioAnalyzer(std::size_t fftSize, float overlap)
-    : m_fftSize(fftSize)
+    : m_fftSize(std::max(std::size_t(1), fftSize))
     , m_window(std::vector<float>(m_fftSize))
-    , m_overlap(overlap)
+    , m_overlap(std::clamp(overlap, 0.0f, 0.9f))
 {
-    // Load the wisdom file here?
-
     _initFftw();
     _initWindow();
 }
