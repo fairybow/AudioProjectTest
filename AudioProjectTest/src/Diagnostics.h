@@ -63,8 +63,8 @@
 
 #else // !defined(USE_DX_BENCH_MACROS)
 
-#define DX_BENCH(processName) ((void)0)
-#define DX_BENCH_STOP(processName) ((void)0)
+#define DX_BENCH(processName)       ((void)0)
+#define DX_BENCH_STOP(processName)  ((void)0)
 
 #endif // defined(USE_DX_BENCH_MACROS)
 

@@ -22,8 +22,10 @@ public:
     struct Analysis
     {
         std::filesystem::path file{};
+
         // FFT size determines the time resolution of static detection
         float chunkDurationSeconds = 0.0f;
+
         // Start times (in seconds) of detected static chunks
         std::vector<float> staticChunkStartTimes{};
 

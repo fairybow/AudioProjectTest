@@ -5,10 +5,8 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdio>
 #include <format>
 #include <ios>
-#include <iostream>
 #include <string>
 
 #if defined(USE_AVX2)

@@ -12,8 +12,8 @@
 
 #else // !defined(USE_LOGGING)
 
-#define LOGGING_CERR(message, ...) ((void)0)
-#define LOGGING_COUT(message, ...) ((void)0)
+#define LOGGING_CERR(message, ...)  ((void)0)
+#define LOGGING_COUT(message, ...)  ((void)0)
 
 #endif // defined(USE_LOGGING)
 
