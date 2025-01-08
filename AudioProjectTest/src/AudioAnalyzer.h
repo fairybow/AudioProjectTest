@@ -65,7 +65,8 @@ private:
     // FFTW
     //--------------------------------------------------------------------------
 
-    // When/how to clear input/output buffers between (or not) transforms?
+    std::filesystem::path m_wisdomPath = "C:\\Dev\\wisdom.fftw";
+    // ^ Configurable later
 
     std::size_t m_numFrequencyBins = 0;
     float* m_fftInputBuffer = nullptr;

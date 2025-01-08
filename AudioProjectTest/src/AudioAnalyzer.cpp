@@ -1,9 +1,13 @@
+#define _CRT_SECURE_NO_WARNINGS // Your aren't my dad, Microsoft
+
 #include "AudioAnalyzer.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <format>
 #include <ios>
+#include <iostream>
 #include <string>
 
 #if defined(USE_AVX2)
@@ -66,24 +70,80 @@ std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<st
     return analyses;
 }
 
+// Section off read/write
 void AudioAnalyzer::_initFftw()
 {
     // https://www.fftw.org/doc/SIMD-alignment-and-fftw_005fmalloc.html
     // fftwf_alloc_real & fftwf_alloc_complex are wrappers that call fftwf_malloc
 
-    // Read/write from wisdom based on FFT size
+    // Attempt to load wisdom from file. FFTW expects `FILE*` for its functions
+    if (!std::filesystem::exists(m_wisdomPath.parent_path()))
+    {
+        std::filesystem::create_directories(m_wisdomPath.parent_path());
+    }
 
+    // Attempt to load wisdom from file
+    auto wisdom_in = std::fopen(m_wisdomPath.string().c_str(), "rb");
+    if (wisdom_in)
+    {
+        std::cout << "Reading wisdom from: " << m_wisdomPath.string() << std::endl;
+        fftwf_import_wisdom_from_file(wisdom_in);
+        std::fclose(wisdom_in);
+    }
+
+    // Calculate FFT size-related properties
     m_numFrequencyBins = (m_fftSize / 2) + 1;
+
+    // Allocate input/output buffers
     m_fftInputBuffer = fftwf_alloc_real(m_fftSize);
     m_fftOutputBuffer = fftwf_alloc_complex(m_numFrequencyBins);
 
+    auto fft_size = static_cast<int>(m_fftSize);
+
+    // Attempt to create a plan using the loaded wisdom
     m_fftwPlan = fftwf_plan_dft_r2c_1d
     (
-        static_cast<int>(m_fftSize),
+        fft_size,
+        m_fftInputBuffer,
+        m_fftOutputBuffer,
+        FFTW_MEASURE
+    );
+
+    // Return if successful
+    if (m_fftwPlan)
+    {
+        std::cout << "Successfully created plan from wisdom" << std::endl;
+        return;
+    }
+
+    // Else
+    m_fftwPlan = fftwf_plan_dft_r2c_1d
+    (
+        fft_size,
         m_fftInputBuffer,
         m_fftOutputBuffer,
         FFTW_ESTIMATE
     );
+
+    if (!m_fftwPlan)
+    {
+        DX_THROW_RUN_TIME("Failed to create FFTW plan.");
+    }
+
+    // Save the new wisdom to file for future runs
+    auto wisdom_out = std::fopen(m_wisdomPath.string().c_str(), "wb");
+    if (wisdom_out)
+    {
+        fftwf_export_wisdom_to_file(wisdom_out);
+        std::cout << "Wisdom successfully written to: "
+            << m_wisdomPath.string() << std::endl;
+        std::fclose(wisdom_out);
+    }
+    else
+    {
+        std::cerr << "Error: Unable to open wisdom file for writing: "
+            << m_wisdomPath.string() << std::endl;
+    }
 }
 
 void AudioAnalyzer::_freeFftw()
