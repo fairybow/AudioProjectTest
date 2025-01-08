@@ -2,7 +2,6 @@
 #include "Logging.h"
 
 #include <algorithm>
-#include <cmath>
 #include <format>
 #include <ios>
 #include <string>
@@ -19,12 +18,13 @@
 
 std::ostream& operator<<(std::ostream& os, const AudioAnalyzer::Analysis& a)
 {
-    constexpr auto format =                     \
+    constexpr auto format = \
         "File: {}\n"                            \
-        "FFT Size : {}\n"                       \
+        "FFT Size: {}\n"                        \
+        "Windowing: {}\n"                       \
         "Overlap: {}\n"                         \
-        "Chunk length(seconds) : {:.2f}\n"      \
-        "Staticky chunk start times : [{}]";
+        "Chunk length (seconds): {:.2f}\n"      \
+        "Staticky chunk start times: [{}]";
 
     // Format staticChunkStartTimes as a comma-separated list
     // Silo, change to avoid repeat allocations? Worth it?
@@ -40,6 +40,7 @@ std::ostream& operator<<(std::ostream& os, const AudioAnalyzer::Analysis& a)
         format,
         a.file.string(),
         a.fftSize,
+        Windowing::toString(a.windowType),
         std::format("{}%", a.overlapDecPercent * 100.0f),
         a.chunkDurationSeconds,
         static_chunk_start_times
@@ -49,11 +50,12 @@ std::ostream& operator<<(std::ostream& os, const AudioAnalyzer::Analysis& a)
 AudioAnalyzer::AudioAnalyzer
 (
     std::size_t fftSize,
+    Windowing::Window windowType,
     float overlap,
     const std::filesystem::path& wisdomPath
 )
     : m_fftSize(std::max(std::size_t(1), fftSize))
-    , m_window(std::vector<float>(m_fftSize))
+    , m_windowType(windowType)
     , m_overlapDecPercent(std::clamp(overlap, 0.0f, 0.9f))
     , m_wisdomPath(wisdomPath)
 {
@@ -62,7 +64,7 @@ AudioAnalyzer::AudioAnalyzer
 }
 
 AudioAnalyzer::AudioAnalyzer(const std::filesystem::path& wisdomPath)
-    : AudioAnalyzer(DEFAULT_FFT_SIZE, DEFAULT_OVERLAP, wisdomPath)
+    : AudioAnalyzer(DEFAULT_FFT_SIZE, DEFAULT_WINDOW, DEFAULT_OVERLAP, wisdomPath)
 {
 }
 
@@ -185,22 +187,37 @@ void AudioAnalyzer::_freeFftw()
 
 void AudioAnalyzer::_initWindow()
 {
-    // Hann window:
-
-    constexpr auto pi = 3.141593f; // Accurate enough?
-
-    for (auto i = 0; i < m_fftSize; ++i)
+    // Can perhaps get some benefit from testing different window types.
+    // Ultimately, may only need one.
+    switch (m_windowType)
     {
-        // Calculate the cosine of the normalized angular position for index i
-        auto cosine = std::cos((2.0f * pi * i) / (m_fftSize - 1));
+    case Windowing::Triangular:
+        m_window = Windowing::triangular(m_fftSize);
+        break;
+    case Windowing::Hann:
+        m_window = Windowing::hann(m_fftSize);
+        break;
+    case Windowing::Hamming:
+        m_window = Windowing::hamming(m_fftSize);
+        break;
+    case Windowing::Blackman:
+        m_window = Windowing::blackman(m_fftSize);
+        break;
+    case Windowing::FlatTop:
+        m_window = Windowing::flatTop(m_fftSize);
+        break;
+    case Windowing::Gaussian:
+        m_window = Windowing::gaussian(m_fftSize);
+        break;
 
-        // Calculate the Hann window coefficient for index i
-        m_window[i] = 0.5f * (1.0f - cosine);
+    default:
+    case Windowing::None:
+        m_useWindowing = false;
+        break;
     }
 }
 
 // Parallelize FFT Computation?
-
 // Find common elements later
 // Refine into smaller functions (potentially called from both this and AVX2
 // function)
@@ -332,6 +349,7 @@ void AudioAnalyzer::_process
         {
             in_file,
             m_fftSize,
+            m_windowType,
             m_overlapDecPercent,
             static_cast<float>(m_fftSize) / SAMPLING_RATE,
             static_chunk_start_times
@@ -364,7 +382,6 @@ void AudioAnalyzer::_fftAnalyzeChunk
     }
 }
 
-// Calculate raw audio stream size
 std::streamsize AudioAnalyzer::_sizeOf(std::ifstream& rawAudio) const
 {
     rawAudio.seekg(0, std::ios::end);
@@ -380,9 +397,16 @@ void AudioAnalyzer::_prepareInputBuffer(const std::vector<std::int16_t>& chunk)
 
 #if !defined(USE_AVX2)
 
-    for (std::size_t i = 0; i < chunk.size(); ++i)
+    // Checking outside the for loop faster? Negligible, I assume.
+    if (m_useWindowing)
     {
-        m_fftInputBuffer[i] = chunk[i] * m_window[i];
+        for (std::size_t i = 0; i < chunk.size(); ++i)
+            m_fftInputBuffer[i] = chunk[i] * m_window[i];
+    }
+    else
+    {
+        for (std::size_t i = 0; i < chunk.size(); ++i)
+            m_fftInputBuffer[i] = chunk[i];
     }
 
 #else // defined(USE_AVX2)
@@ -390,27 +414,48 @@ void AudioAnalyzer::_prepareInputBuffer(const std::vector<std::int16_t>& chunk)
     const auto chunk_size = chunk.size();
     std::size_t i = 0;
 
-    // Process 8 elements at a time
-    for (; i + 7 < chunk_size; i += 8)
+    if (m_useWindowing)
     {
-        // Load 8 int16_t values and extend to int32_t
-        auto chunk_vals_16 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&chunk[i]));
-        auto chunk_vals = _mm256_cvtepi32_ps(_mm256_cvtepi16_epi32(chunk_vals_16));
+        // Process 8 elements at a time
+        for (; i + 7 < chunk_size; i += 8)
+        {
+            // Load 8 int16_t values and extend to int32_t
+            auto chunk_vals_16 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&chunk[i]));
+            auto chunk_vals = _mm256_cvtepi32_ps(_mm256_cvtepi16_epi32(chunk_vals_16));
 
-        // Load Hann window coefficients
-        auto window_vals = _mm256_loadu_ps(&m_window[i]);
+            // Load Hann window coefficients
+            auto window_vals = _mm256_loadu_ps(&m_window[i]);
 
-        // Perform element-wise multiplication
-        auto result = _mm256_mul_ps(chunk_vals, window_vals);
+            // Perform element-wise multiplication
+            auto result = _mm256_mul_ps(chunk_vals, window_vals);
 
-        // Store the results
-        _mm256_storeu_ps(&m_fftInputBuffer[i], result);
+            // Store the results
+            _mm256_storeu_ps(&m_fftInputBuffer[i], result);
+        }
+    }
+    else // (!m_useWindowing)
+    {
+        for (; i + 7 < chunk_size; i += 8)
+        {
+            // Load 8 int16_t values and extend to int32_t
+            auto chunk_vals_16 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&chunk[i]));
+            auto chunk_vals = _mm256_cvtepi32_ps(_mm256_cvtepi16_epi32(chunk_vals_16));
+
+            // Store the results directly
+            _mm256_storeu_ps(&m_fftInputBuffer[i], chunk_vals);
+        }
     }
 
     // Process remaining elements
-    for (; i < chunk_size; ++i)
+    if (m_useWindowing)
     {
-        m_fftInputBuffer[i] = chunk[i] * m_window[i];
+        for (; i < chunk_size; ++i)
+            m_fftInputBuffer[i] = chunk[i] * m_window[i];
+    }
+    else
+    {
+        for (; i < chunk_size; ++i)
+            m_fftInputBuffer[i] = chunk[i];
     }
 
 #endif // !defined(USE_AVX2)
@@ -503,7 +548,7 @@ bool AudioAnalyzer::_haveStatic(const std::vector<float>& magnitudes) const
             // Static detection logic placeholder (to be implemented later)
             // For now, we assume a simple placeholder threshold
             constexpr auto static_threshold = 1000.0f;
-            // ^ ALTHOUGH, seems to be working well for a placeholder.
+            // ^ ALTHOUGH, maybe seems to be working well for a placeholder?
             return mag > static_threshold;
         }
     );

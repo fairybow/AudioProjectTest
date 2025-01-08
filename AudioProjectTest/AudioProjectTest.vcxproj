@@ -33,12 +33,14 @@
     <ClCompile Include="src\Logging.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\AudioAnalyzer.cpp" />
+    <ClCompile Include="src\Windowing.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="old\AudioAnalyzerOLD.h" />
     <ClInclude Include="src\Diagnostics.h" />
     <ClInclude Include="src\AudioAnalyzer.h" />
     <ClInclude Include="src\Logging.h" />
+    <ClInclude Include="src\Windowing.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
