@@ -38,7 +38,7 @@ private:
     // Would it be fine to just use singleton and set benching on/off, or would
     // the added function calls (which aren't present when the macros are
     // no-ops) add up?
-    //DX_BENCH(AudioAnalyzer); // Shut up, Intellisense
+    DX_BENCH(AudioAnalyzer); // Shut up, Intellisense
 
     // FFT size represents the number of samples in a chunk
     // (2048 bytes with std::int16_t)
@@ -65,7 +65,7 @@ private:
     // FFTW
     //--------------------------------------------------------------------------
 
-    std::filesystem::path m_wisdomPath = "C:\\Dev\\wisdom.fftw";
+    std::filesystem::path m_wisdomPath = "C:\\Dev\\fftw_wisdom.dat";
     // ^ Configurable later
 
     std::size_t m_numFrequencyBins = 0;

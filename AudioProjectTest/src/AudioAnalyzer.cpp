@@ -76,21 +76,6 @@ void AudioAnalyzer::_initFftw()
     // https://www.fftw.org/doc/SIMD-alignment-and-fftw_005fmalloc.html
     // fftwf_alloc_real & fftwf_alloc_complex are wrappers that call fftwf_malloc
 
-    // Attempt to load wisdom from file. FFTW expects `FILE*` for its functions
-    if (!std::filesystem::exists(m_wisdomPath.parent_path()))
-    {
-        std::filesystem::create_directories(m_wisdomPath.parent_path());
-    }
-
-    // Attempt to load wisdom from file
-    auto wisdom_in = std::fopen(m_wisdomPath.string().c_str(), "rb");
-    if (wisdom_in)
-    {
-        std::cout << "Reading wisdom from: " << m_wisdomPath.string() << std::endl;
-        fftwf_import_wisdom_from_file(wisdom_in);
-        std::fclose(wisdom_in);
-    }
-
     // Calculate FFT size-related properties
     m_numFrequencyBins = (m_fftSize / 2) + 1;
 
@@ -100,7 +85,18 @@ void AudioAnalyzer::_initFftw()
 
     auto fft_size = static_cast<int>(m_fftSize);
 
-    // Attempt to create a plan using the loaded wisdom
+    // https://fftw.org/fftw3_doc/Words-of-Wisdom_002dSaving-Plans.html
+
+    // Try to load wisdom from file
+    if (fftwf_import_wisdom_from_filename(m_wisdomPath.string().c_str()))
+    {
+        std::cout << "Wisdom loaded successfully from file: " << m_wisdomPath << std::endl;
+    }
+    else
+    {
+        std::cout << "No wisdom file found. Starting from scratch." << std::endl;
+    }
+
     m_fftwPlan = fftwf_plan_dft_r2c_1d
     (
         fft_size,
@@ -109,40 +105,19 @@ void AudioAnalyzer::_initFftw()
         FFTW_MEASURE
     );
 
-    // Return if successful
-    if (m_fftwPlan)
+    if (!std::filesystem::exists(m_wisdomPath.parent_path()))
     {
-        std::cout << "Successfully created plan from wisdom" << std::endl;
-        return;
+        std::filesystem::create_directories(m_wisdomPath.parent_path());
     }
 
-    // Else
-    m_fftwPlan = fftwf_plan_dft_r2c_1d
-    (
-        fft_size,
-        m_fftInputBuffer,
-        m_fftOutputBuffer,
-        FFTW_ESTIMATE
-    );
-
-    if (!m_fftwPlan)
+    // Save the wisdom to a file
+    if (fftwf_export_wisdom_to_filename(m_wisdomPath.string().c_str()))
     {
-        DX_THROW_RUN_TIME("Failed to create FFTW plan.");
-    }
-
-    // Save the new wisdom to file for future runs
-    auto wisdom_out = std::fopen(m_wisdomPath.string().c_str(), "wb");
-    if (wisdom_out)
-    {
-        fftwf_export_wisdom_to_file(wisdom_out);
-        std::cout << "Wisdom successfully written to: "
-            << m_wisdomPath.string() << std::endl;
-        std::fclose(wisdom_out);
+        std::cout << "Wisdom saved to file: " << m_wisdomPath << std::endl;
     }
     else
     {
-        std::cerr << "Error: Unable to open wisdom file for writing: "
-            << m_wisdomPath.string() << std::endl;
+        std::cerr << "Failed to save wisdom to file." << std::endl;
     }
 }
 
