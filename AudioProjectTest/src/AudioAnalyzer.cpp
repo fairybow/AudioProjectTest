@@ -210,11 +210,12 @@ void AudioAnalyzer::_process
         auto has_remainder = (total_samples % m_fftSize) != 0;
 
         // Analyze full chunks and record start time (in seconds) of chunks with static
+        auto hop_size = static_cast<std::size_t>(m_fftSize * (1.0f - m_overlap));
         std::vector<std::int16_t> buffer(m_fftSize);
         for (std::size_t chunk_i = 0; chunk_i < chunks_count; ++chunk_i)
         {
             raw_audio.read(reinterpret_cast<char*>(buffer.data()), m_fftSize * sizeof(std::int16_t));
-            auto chunk_start_time = static_cast<float>(chunk_i * m_fftSize) / SAMPLING_RATE;
+            auto chunk_start_time = static_cast<float>(chunk_i * hop_size) / SAMPLING_RATE;
 
             _fftAnalyzeChunk
             (
@@ -222,15 +223,20 @@ void AudioAnalyzer::_process
                 chunk_start_time,
                 static_chunk_start_times
             );
+
+            // Seek back to account for overlap
+            raw_audio.seekg(-static_cast<std::streamoff>(m_fftSize - hop_size) * sizeof(std::int16_t), std::ios::cur);
         }
+
+        // GO BACK BRANCH AND CHECK RESULTS AND THEN COME BACK HERE AND COMPARE WITH USING HOP!!!!!!
 
         // Analyze remainder
         if (has_remainder)
         {
-            std::size_t remainder_samples = total_samples % m_fftSize;
+            std::size_t remainder_samples = total_samples - (chunks_count * hop_size);
             std::vector<std::int16_t> remainder_buffer(m_fftSize, 0);
             raw_audio.read(reinterpret_cast<char*>(remainder_buffer.data()), remainder_samples * sizeof(std::int16_t));
-            auto remainder_start_time = static_cast<float>(chunks_count * m_fftSize) / SAMPLING_RATE;
+            auto remainder_start_time = static_cast<float>(chunks_count * hop_size) / SAMPLING_RATE;
 
             _fftAnalyzeChunk
             (
