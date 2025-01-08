@@ -397,7 +397,7 @@ void AudioAnalyzer::_prepareInputBuffer(const std::vector<std::int16_t>& chunk)
 
 #if !defined(USE_AVX2)
 
-    // Checking outside the for loop faster? Negligible, I assume.
+    // Checking outside the for loop faster? Negligible, I assume?
     if (m_useWindowing)
     {
         for (std::size_t i = 0; i < chunk.size(); ++i)
@@ -437,7 +437,6 @@ void AudioAnalyzer::_prepareInputBuffer(const std::vector<std::int16_t>& chunk)
     {
         for (; i + 7 < chunk_size; i += 8)
         {
-            // Load 8 int16_t values and extend to int32_t
             auto chunk_vals_16 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&chunk[i]));
             auto chunk_vals = _mm256_cvtepi32_ps(_mm256_cvtepi16_epi32(chunk_vals_16));
 
