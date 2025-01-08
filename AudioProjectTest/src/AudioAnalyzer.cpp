@@ -1,5 +1,3 @@
-//#define _CRT_SECURE_NO_WARNINGS // Your aren't my dad, Microsoft
-
 #include "AudioAnalyzer.h"
 #include "Logging.h"
 
@@ -21,10 +19,15 @@
 
 std::ostream& operator<<(std::ostream& os, const AudioAnalyzer::Analysis& a)
 {
-    constexpr auto format = \
-        "File: {}\nChunk length (seconds): {:.2f}\nStaticky chunk start times: [{}]";
+    constexpr auto format =                     \
+        "File: {}\n"                            \
+        "FFT Size : {}\n"                       \
+        "Overlap: {}\n"                         \
+        "Chunk length(seconds) : {:.2f}\n"      \
+        "Staticky chunk start times : [{}]";
 
     // Format staticChunkStartTimes as a comma-separated list
+    // Silo, change to avoid repeat allocations? Worth it?
     std::string static_chunk_start_times{};
     for (std::size_t i = 0; i < a.staticChunkStartTimes.size(); ++i)
     {
@@ -36,17 +39,31 @@ std::ostream& operator<<(std::ostream& os, const AudioAnalyzer::Analysis& a)
     (
         format,
         a.file.string(),
+        a.fftSize,
+        std::format("{}%", a.overlapDecPercent * 100.0f),
         a.chunkDurationSeconds,
         static_chunk_start_times
     );
 }
 
-AudioAnalyzer::AudioAnalyzer()
+AudioAnalyzer::AudioAnalyzer
+(
+    std::size_t fftSize,
+    float overlap,
+    const std::filesystem::path& wisdomPath
+)
+    : m_fftSize(std::max(std::size_t(1), fftSize))
+    , m_window(std::vector<float>(m_fftSize))
+    , m_overlapDecPercent(std::clamp(overlap, 0.0f, 0.9f))
+    , m_wisdomPath(wisdomPath)
 {
-    // Load the wisdom file here?
-
     _initFftw();
     _initWindow();
+}
+
+AudioAnalyzer::AudioAnalyzer(const std::filesystem::path& wisdomPath)
+    : AudioAnalyzer(DEFAULT_FFT_SIZE, DEFAULT_OVERLAP, wisdomPath)
+{
 }
 
 AudioAnalyzer::~AudioAnalyzer()
@@ -84,39 +101,58 @@ void AudioAnalyzer::_initFftw()
     m_fftInputBuffer = fftwf_alloc_real(m_fftSize);
     m_fftOutputBuffer = fftwf_alloc_complex(m_numFrequencyBins);
 
-    auto fft_size = static_cast<int>(m_fftSize);
-
-    // https://fftw.org/fftw3_doc/Words-of-Wisdom_002dSaving-Plans.html
-
-    // Try to load wisdom from file
-    auto wisdom_path = m_wisdomPath.string();
-    auto wisdom_found = static_cast<bool>(
-        fftwf_import_wisdom_from_filename(wisdom_path.c_str()));
-
-    wisdom_found
-        ? LOGGING_COUT("Wisdom file loaded from \"{}\"", wisdom_path)
-        : LOGGING_CERR("Failed to find wisdom file at \"{}\"", wisdom_path);
-
-    m_fftwPlan = fftwf_plan_dft_r2c_1d
-    (
-        fft_size,
-        m_fftInputBuffer,
-        m_fftOutputBuffer,
-        FFTW_MEASURE
-    );
-
-    if (!std::filesystem::exists(m_wisdomPath.parent_path()))
+    if (!m_fftInputBuffer || !m_fftOutputBuffer)
     {
-        std::filesystem::create_directories(m_wisdomPath.parent_path());
+        DX_THROW_RUN_TIME("Failed to allocate FFT buffers.");
     }
 
-    // If we un-hard-code some values (namely m_fftSize), make sure this still
-    // works like we want it to
-    if (!wisdom_found)
+    auto fft_size = static_cast<int>(m_fftSize);
+
+    if (!m_wisdomPath.empty())
     {
-        fftwf_export_wisdom_to_filename(wisdom_path.c_str())
-            ? LOGGING_COUT("Wisdom file saved to \"{}\"", wisdom_path)
-            : LOGGING_CERR("Failed to save wisdom to disk (\"{}\")", wisdom_path);
+        // https://fftw.org/fftw3_doc/Words-of-Wisdom_002dSaving-Plans.html
+
+        // Try to load wisdom from file
+        auto wisdom_path = m_wisdomPath.string();
+        auto wisdom_found = static_cast<bool>(
+            fftwf_import_wisdom_from_filename(wisdom_path.c_str()));
+
+        wisdom_found
+            ? LOGGING_COUT("Wisdom file loaded from \"{}\"", wisdom_path)
+            : LOGGING_CERR("Failed to find wisdom file at \"{}\"", wisdom_path);
+
+        m_fftwPlan = fftwf_plan_dft_r2c_1d
+        (
+            fft_size,
+            m_fftInputBuffer,
+            m_fftOutputBuffer,
+            FFTW_MEASURE
+        );
+
+        if (!std::filesystem::exists(m_wisdomPath.parent_path()))
+        {
+            std::filesystem::create_directories(m_wisdomPath.parent_path());
+        }
+
+        // Double check that this saves appropriately with variable FFT size,
+        // overlap, etc. It should save only when an optimzed plan for the
+        // current values wasn't found.
+        if (!wisdom_found)
+        {
+            fftwf_export_wisdom_to_filename(wisdom_path.c_str())
+                ? LOGGING_COUT("Wisdom file saved to \"{}\"", wisdom_path)
+                : LOGGING_CERR("Failed to save wisdom to disk (\"{}\")", wisdom_path);
+        }
+    }
+    else // (m_wisdomPath.empty())
+    {
+        m_fftwPlan = fftwf_plan_dft_r2c_1d
+        (
+            fft_size,
+            m_fftInputBuffer,
+            m_fftOutputBuffer,
+            FFTW_ESTIMATE
+        );
     }
 }
 
@@ -163,6 +199,8 @@ void AudioAnalyzer::_initWindow()
     }
 }
 
+// Parallelize FFT Computation?
+
 // Find common elements later
 // Refine into smaller functions (potentially called from both this and AVX2
 // function)
@@ -202,64 +240,124 @@ void AudioAnalyzer::_process
         // Calculate number of chunks
         // Before separating this off, we will need other variables in it
         // (chunks_count, for example)...
+        auto hop_size = static_cast<std::size_t>(m_fftSize * (1.0f - m_overlapDecPercent));
         auto total_samples = raw_audio_size / sizeof(std::int16_t);
-        auto chunks_count = total_samples / m_fftSize;
-        auto has_remainder = (total_samples % m_fftSize) != 0;
 
-        // Analyze full chunks and record start time (in seconds) of chunks with static
-        std::vector<std::int16_t> buffer(m_fftSize);
-        for (std::size_t chunk_i = 0; chunk_i < chunks_count; ++chunk_i)
+        // Handle edge case where total_samples < m_fftSize
+        auto chunks_count = (total_samples > m_fftSize)
+            ? (((total_samples - m_fftSize) / hop_size) + 1)
+            : 1;
+
+        if (chunks_count < 1)
         {
-            raw_audio.read(reinterpret_cast<char*>(buffer.data()), m_fftSize * sizeof(std::int16_t));
-            auto chunk_start_time = static_cast<float>(chunk_i * m_fftSize) / SAMPLING_RATE;
+            DX_THROW_RUN_TIME("Lol what");
+        }
+
+        std::vector<std::int16_t> buffer(m_fftSize);
+
+        if (chunks_count == 1)
+        {
+            raw_audio.read
+            (
+                reinterpret_cast<char*>(buffer.data()),
+                total_samples * sizeof(std::int16_t)
+            );
 
             _fftAnalyzeChunk
             (
                 buffer,
-                chunk_start_time,
-                static_chunk_start_times
+                0.0f,
+                static_chunk_start_times,
+                IsLastChunk::Yes
             );
         }
-
-        // Analyze remainder
-        if (has_remainder)
+        else // (chunks_count > 1)
         {
-            std::size_t remainder_samples = total_samples % m_fftSize;
-            std::vector<std::int16_t> remainder_buffer(m_fftSize, 0);
-            raw_audio.read(reinterpret_cast<char*>(remainder_buffer.data()), remainder_samples * sizeof(std::int16_t));
-            auto remainder_start_time = static_cast<float>(chunks_count * m_fftSize) / SAMPLING_RATE;
+            // Determine if there's a remainder based on the hop_size
+            auto has_remainder = (total_samples > (chunks_count * hop_size));
 
-            _fftAnalyzeChunk
-            (
-                remainder_buffer,
-                remainder_start_time,
-                static_chunk_start_times
-            );
+            // Analyze full chunks and record start time (in seconds) of chunks with static
+            for (std::size_t chunk_i = 0; chunk_i < chunks_count; ++chunk_i)
+            {
+                raw_audio.read
+                (
+                    reinterpret_cast<char*>(buffer.data()),
+                    m_fftSize * sizeof(std::int16_t)
+                );
+
+                auto chunk_start_time = static_cast<float>(chunk_i * hop_size) / SAMPLING_RATE;
+
+                _fftAnalyzeChunk
+                (
+                    buffer,
+                    chunk_start_time,
+                    static_chunk_start_times
+                );
+
+                // Seek back to account for overlap
+                // Sliding buffer instead?
+                raw_audio.seekg
+                (
+                    -static_cast<std::streamoff>(m_fftSize - hop_size) * sizeof(std::int16_t),
+                    std::ios::cur
+                );
+            }
+
+            // Analyze remainder
+            if (has_remainder)
+            {
+                std::size_t remainder_samples = total_samples - (chunks_count * hop_size);
+                std::vector<std::int16_t> remainder_buffer(m_fftSize, 0);
+
+                raw_audio.read
+                (
+                    reinterpret_cast<char*>(remainder_buffer.data()),
+                    remainder_samples * sizeof(std::int16_t)
+                );
+
+                auto remainder_start_time = static_cast<float>(chunks_count * hop_size) / SAMPLING_RATE;
+
+                _fftAnalyzeChunk
+                (
+                    remainder_buffer,
+                    remainder_start_time,
+                    static_chunk_start_times,
+                    IsLastChunk::Yes
+                );
+            }
         }
 
         // Aggregate results
-        auto& analysis = analyses[i];
-        analysis.file = in_file;
-        analysis.chunkDurationSeconds = static_cast<float>(m_fftSize) / SAMPLING_RATE;
-        analysis.staticChunkStartTimes = static_chunk_start_times;
+        analyses[i] =
+        {
+            in_file,
+            m_fftSize,
+            m_overlapDecPercent,
+            static_cast<float>(m_fftSize) / SAMPLING_RATE,
+            static_chunk_start_times
+        };
     }
 }
 
-// Don't forget to section off small, reusable pieces of code to reduce the
-// redundancy alllll over this right now
 void AudioAnalyzer::_fftAnalyzeChunk
 (
     const std::vector<std::int16_t>& chunk,
     float segmentStartTimeSeconds,
-    std::vector<float>& staticChunkStartTimes
+    std::vector<float>& staticChunkStartTimes,
+    IsLastChunk isLastChunk
 )
 {
     _prepareInputBuffer(chunk);
-    _maybeZeroPadInputBuffer(chunk);
+
+    if (isLastChunk == IsLastChunk::Yes)
+    {
+        _zeroPadInputBuffer(chunk);
+    }
 
     fftwf_execute(m_fftwPlan);
 
     auto magnitudes = _magnitudesFromOutputBuffer();
+
     if (_haveStatic(magnitudes))
     {
         staticChunkStartTimes.emplace_back(segmentStartTimeSeconds);
@@ -276,6 +374,7 @@ std::streamsize AudioAnalyzer::_sizeOf(std::ifstream& rawAudio) const
 }
 
 // Copy chunk data into FFT input buffer with scaling and Hann window
+// Add optional windows and an option for none
 void AudioAnalyzer::_prepareInputBuffer(const std::vector<std::int16_t>& chunk)
 {
 
@@ -318,11 +417,9 @@ void AudioAnalyzer::_prepareInputBuffer(const std::vector<std::int16_t>& chunk)
 
 }
 
-// Should I do a check here to avoid doing anything if the chunk doesn't
-// need padding? Or do check outside this function?
 // Zero-pad the remainder of the buffer if the chunk is smaller than
-// m_fftSize
-void AudioAnalyzer::_maybeZeroPadInputBuffer(const std::vector<std::int16_t>& chunk)
+// m_fftSize (which I would assume is almost always the case)
+void AudioAnalyzer::_zeroPadInputBuffer(const std::vector<std::int16_t>& chunk)
 {
 
 #if !defined(USE_AVX2)
@@ -401,7 +498,7 @@ bool AudioAnalyzer::_haveStatic(const std::vector<float>& magnitudes) const
     (
         magnitudes.begin(),
         magnitudes.end(),
-        [=](float mag)
+        [](float mag)
         {
             // Static detection logic placeholder (to be implemented later)
             // For now, we assume a simple placeholder threshold

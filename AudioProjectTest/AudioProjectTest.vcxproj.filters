@@ -27,7 +27,7 @@
     <None Include="scripts\PreBuild.bat">
       <Filter>Scripts</Filter>
     </None>
-    <None Include="notes\Todo.md">
+    <None Include="notes\Todo 2.md">
       <Filter>Notes</Filter>
     </None>
     <None Include="notes\Setup.md">
@@ -42,7 +42,7 @@
     <None Include="notes\Notes.md">
       <Filter>Notes</Filter>
     </None>
-    <None Include="notes\AVX2.md">
+    <None Include="notes\Todo.md">
       <Filter>Notes</Filter>
     </None>
   </ItemGroup>

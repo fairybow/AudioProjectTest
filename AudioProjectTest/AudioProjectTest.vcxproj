@@ -19,9 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <None Include="notes\AVX2.md" />
-    <None Include="notes\Notes.md" />
     <None Include="notes\Todo.md" />
+    <None Include="notes\Notes.md" />
+    <None Include="notes\Todo 2.md" />
     <None Include="notes\Setup.md" />
     <None Include="notes\Snippets.md" />
     <None Include="old\.clang-format.nothanks" />

@@ -22,6 +22,9 @@ public:
     struct Analysis
     {
         std::filesystem::path file{};
+        // Window type
+        std::size_t fftSize = 0;
+        float overlapDecPercent = 0.0f;
 
         // FFT size determines the time resolution of static detection
         float chunkDurationSeconds = 0.0f;
@@ -32,7 +35,15 @@ public:
         friend std::ostream& operator<<(std::ostream&, const Analysis&);
     };
 
-    AudioAnalyzer();
+    AudioAnalyzer
+    (
+        std::size_t fftSize = DEFAULT_FFT_SIZE,
+        float overlap = DEFAULT_OVERLAP,
+        const std::filesystem::path& wisdomPath = {}
+    );
+
+    AudioAnalyzer(const std::filesystem::path& wisdomPath);
+
     virtual ~AudioAnalyzer();
 
     Analysis process(const std::filesystem::path& inFile);
@@ -47,9 +58,10 @@ private:
     // FFT size represents the number of samples in a chunk
     // (2048 bytes with std::int16_t)
     static constexpr const std::size_t DEFAULT_FFT_SIZE = 1024;
-    static constexpr auto SAMPLING_RATE = 8000.0f;
+    std::size_t m_fftSize;
 
-    std::size_t m_fftSize = DEFAULT_FFT_SIZE;
+    // Adjustable?
+    static constexpr auto SAMPLING_RATE = 8000.0f;
 
     //--------------------------------------------------------------------------
     // Windowing
@@ -59,18 +71,16 @@ private:
     // due to no overlap), these discontinuities introduce high-frequency
     // artifacts, known as spectral leakage. So, I believe that without a window
     // we will always detect static in a chunk at its edges.
-
-    std::vector<float> m_window = std::vector<float>(m_fftSize);
-    // ^ Hard code for now. Allow changing later.
-
+    static constexpr auto DEFAULT_OVERLAP = 0.5f;
+    float m_overlapDecPercent;
+    std::vector<float> m_window;
     void _initWindow();
 
     //--------------------------------------------------------------------------
     // FFTW
     //--------------------------------------------------------------------------
 
-    std::filesystem::path m_wisdomPath = "C:\\Dev\\fftw_wisdom.dat";
-    // ^ Configurable later
+    std::filesystem::path m_wisdomPath;
 
     std::size_t m_numFrequencyBins = 0;
     float* m_fftInputBuffer = nullptr;
@@ -84,6 +94,12 @@ private:
     // Processing
     //--------------------------------------------------------------------------
 
+    enum class IsLastChunk
+    {
+        No = 0,
+        Yes
+    };
+
     void _process
     (
         std::vector<Analysis>& analyses,
@@ -94,12 +110,13 @@ private:
     (
         const std::vector<std::int16_t>& chunk,
         float segmentStartTimeSeconds,
-        std::vector<float>& staticChunkStartTimes
+        std::vector<float>& staticChunkStartTimes,
+        IsLastChunk isLastChunk = {}
     );
 
     std::streamsize _sizeOf(std::ifstream& rawAudio) const;
     void _prepareInputBuffer(const std::vector<std::int16_t>& chunk);
-    void _maybeZeroPadInputBuffer(const std::vector<std::int16_t>& chunk);
+    void _zeroPadInputBuffer(const std::vector<std::int16_t>& chunk);
     std::vector<float> _magnitudesFromOutputBuffer();
     bool _haveStatic(const std::vector<float>& magnitudes) const;
 
