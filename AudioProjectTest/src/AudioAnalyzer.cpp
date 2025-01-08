@@ -1,4 +1,7 @@
+//#define _CRT_SECURE_NO_WARNINGS // Your aren't my dad, Microsoft
+
 #include "AudioAnalyzer.h"
+#include "Logging.h"
 
 #include <algorithm>
 #include <cmath>
@@ -59,6 +62,7 @@ AudioAnalyzer::Analysis AudioAnalyzer::process(const std::filesystem::path& inFi
 
 std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<std::filesystem::path>& inFiles)
 {
+    // Note, this will still print if an error throws. Is that a problem?
     DX_BENCH(Processing);
 
     std::vector<Analysis> analyses(inFiles.size());
@@ -66,24 +70,54 @@ std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<st
     return analyses;
 }
 
+// Section off wisdom read/write
 void AudioAnalyzer::_initFftw()
 {
     // https://www.fftw.org/doc/SIMD-alignment-and-fftw_005fmalloc.html
-    // fftwf_alloc_real & fftwf_alloc_complex are wrappers that call fftwf_malloc
+    // fftwf_alloc_real & fftwf_alloc_complex are wrappers that call
+    // fftwf_malloc
 
-    // Read/write from wisdom based on FFT size
-
+    // Calculate FFT size-related properties
     m_numFrequencyBins = (m_fftSize / 2) + 1;
+
+    // Allocate input/output buffers
     m_fftInputBuffer = fftwf_alloc_real(m_fftSize);
     m_fftOutputBuffer = fftwf_alloc_complex(m_numFrequencyBins);
 
+    auto fft_size = static_cast<int>(m_fftSize);
+
+    // https://fftw.org/fftw3_doc/Words-of-Wisdom_002dSaving-Plans.html
+
+    // Try to load wisdom from file
+    auto wisdom_path = m_wisdomPath.string();
+    auto wisdom_found = static_cast<bool>(
+        fftwf_import_wisdom_from_filename(wisdom_path.c_str()));
+
+    wisdom_found
+        ? LOGGING_COUT("Wisdom file loaded from \"{}\"", wisdom_path)
+        : LOGGING_CERR("Failed to find wisdom file at \"{}\"", wisdom_path);
+
     m_fftwPlan = fftwf_plan_dft_r2c_1d
     (
-        static_cast<int>(m_fftSize),
+        fft_size,
         m_fftInputBuffer,
         m_fftOutputBuffer,
-        FFTW_ESTIMATE
+        FFTW_MEASURE
     );
+
+    if (!std::filesystem::exists(m_wisdomPath.parent_path()))
+    {
+        std::filesystem::create_directories(m_wisdomPath.parent_path());
+    }
+
+    // If we un-hard-code some values (namely m_fftSize), make sure this still
+    // works like we want it to
+    if (!wisdom_found)
+    {
+        fftwf_export_wisdom_to_filename(wisdom_path.c_str())
+            ? LOGGING_COUT("Wisdom file saved to \"{}\"", wisdom_path)
+            : LOGGING_CERR("Failed to save wisdom to disk (\"{}\")", wisdom_path);
+    }
 }
 
 void AudioAnalyzer::_freeFftw()

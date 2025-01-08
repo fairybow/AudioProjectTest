@@ -1,7 +1,9 @@
 #pragma once
 
-#define USE_DX_BENCH_MACROS // Temp
-#define USE_AVX2 // Temp
+// Temps:
+#define USE_AVX2
+#define USE_DX_BENCH_MACROS
+#define USE_LOGGING
 
 #include "Diagnostics.h"
 
@@ -20,8 +22,10 @@ public:
     struct Analysis
     {
         std::filesystem::path file{};
+
         // FFT size determines the time resolution of static detection
         float chunkDurationSeconds = 0.0f;
+
         // Start times (in seconds) of detected static chunks
         std::vector<float> staticChunkStartTimes{};
 
@@ -65,7 +69,8 @@ private:
     // FFTW
     //--------------------------------------------------------------------------
 
-    // When/how to clear input/output buffers between (or not) transforms?
+    std::filesystem::path m_wisdomPath = "C:\\Dev\\fftw_wisdom.dat";
+    // ^ Configurable later
 
     std::size_t m_numFrequencyBins = 0;
     float* m_fftInputBuffer = nullptr;

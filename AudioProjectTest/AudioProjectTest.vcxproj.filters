@@ -59,6 +59,9 @@
     <ClCompile Include="old\AudioAnalyzerOLD.cpp">
       <Filter>Old</Filter>
     </ClCompile>
+    <ClCompile Include="src\Logging.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Diagnostics.h">
@@ -69,6 +72,9 @@
     </ClInclude>
     <ClInclude Include="old\AudioAnalyzerOLD.h">
       <Filter>Old</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Logging.h">
+      <Filter>Source Files\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
