@@ -45,8 +45,7 @@ public:
         const std::filesystem::path& wisdomPath = {}
     );
 
-    AudioAnalyzer(const std::filesystem::path& wisdomPath);
-
+    explicit AudioAnalyzer(const std::filesystem::path& wisdomPath);
     virtual ~AudioAnalyzer();
 
     Analysis process(const std::filesystem::path& inFile);
@@ -125,7 +124,7 @@ private:
     std::streamsize _sizeOf(std::ifstream& rawAudio) const;
     void _prepareInputBuffer(const std::vector<std::int16_t>& chunk);
     void _zeroPadInputBuffer(const std::vector<std::int16_t>& chunk);
-    std::vector<float> _magnitudesFromOutputBuffer();
+    std::vector<float> _magnitudesFromOutputBuffer() const;
     bool _haveStatic(const std::vector<float>& magnitudes) const;
 
 }; // class AudioAnalyzer

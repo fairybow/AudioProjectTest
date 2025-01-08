@@ -495,7 +495,7 @@ void AudioAnalyzer::_zeroPadInputBuffer(const std::vector<std::int16_t>& chunk)
 }
 
 // Analyze FFT output (magnitude calculation for each frequency bin)
-std::vector<float> AudioAnalyzer::_magnitudesFromOutputBuffer()
+std::vector<float> AudioAnalyzer::_magnitudesFromOutputBuffer() const
 {
     std::vector<float> magnitudes(m_numFrequencyBins);
 
