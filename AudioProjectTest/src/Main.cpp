@@ -16,7 +16,6 @@ int main(int argc, char* argv[])
 
     try
     {
-        // ADD OVERLAP so we don't miss any static due to windowing
         AudioAnalyzer analyzer{};
         auto analysis = analyzer.process("C:\\Dev\\sample-audio-file-human-then-static.raw");
         std::cout << analysis << std::endl;

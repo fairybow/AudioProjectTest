@@ -22,7 +22,7 @@
 std::ostream& operator<<(std::ostream& os, const AudioAnalyzer::Analysis& a)
 {
     constexpr auto format = \
-        "File: {}\nChunk length (seconds): {:.2f}\nStaticky chunk start times: [{}]";
+        "File: {}\nFFT Size: {}\nOverlap: {}\nChunk length (seconds): {:.2f}\nStaticky chunk start times: [{}]";
 
     // Format staticChunkStartTimes as a comma-separated list
     std::string static_chunk_start_times{};
@@ -36,6 +36,8 @@ std::ostream& operator<<(std::ostream& os, const AudioAnalyzer::Analysis& a)
     (
         format,
         a.file.string(),
+        a.fftSize,
+        a.overlap,
         a.chunkDurationSeconds,
         static_chunk_start_times
     );
@@ -253,6 +255,8 @@ void AudioAnalyzer::_process
         // Aggregate results
         auto& analysis = analyses[i];
         analysis.file = in_file;
+        analysis.fftSize = m_fftSize;
+        analysis.overlap = m_overlap;
         analysis.chunkDurationSeconds = static_cast<float>(m_fftSize) / SAMPLING_RATE;
         analysis.staticChunkStartTimes = static_chunk_start_times;
     }

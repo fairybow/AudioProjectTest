@@ -22,6 +22,9 @@ public:
     struct Analysis
     {
         std::filesystem::path file{};
+        // Window type
+        std::size_t fftSize = 0;
+        float overlap = 0.0f;
 
         // FFT size determines the time resolution of static detection
         float chunkDurationSeconds = 0.0f;
