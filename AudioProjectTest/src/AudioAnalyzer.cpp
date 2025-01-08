@@ -234,7 +234,11 @@ void AudioAnalyzer::_process
 
             // Seek back to account for overlap
             // Sliding buffer instead?
-            raw_audio.seekg(-static_cast<std::streamoff>(m_fftSize - hop_size) * sizeof(std::int16_t), std::ios::cur);
+            raw_audio.seekg
+            (
+                -static_cast<std::streamoff>(m_fftSize - hop_size) * sizeof(std::int16_t),
+                std::ios::cur
+            );
         }
 
         // Analyze remainder
@@ -242,7 +246,13 @@ void AudioAnalyzer::_process
         {
             std::size_t remainder_samples = total_samples - (chunks_count * hop_size);
             std::vector<std::int16_t> remainder_buffer(m_fftSize, 0);
-            raw_audio.read(reinterpret_cast<char*>(remainder_buffer.data()), remainder_samples * sizeof(std::int16_t));
+
+            raw_audio.read
+            (
+                reinterpret_cast<char*>(remainder_buffer.data()),
+                remainder_samples * sizeof(std::int16_t)
+            );
+
             auto remainder_start_time = static_cast<float>(chunks_count * hop_size) / SAMPLING_RATE;
 
             _fftAnalyzeChunk
