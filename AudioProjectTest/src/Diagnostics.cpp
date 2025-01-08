@@ -14,29 +14,39 @@ namespace Diagnostics
 
     Bench::~Bench()
     {
-        auto end = std::chrono::steady_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - m_start);
-        std::cout << m_processName << " completed in " << duration.count() << " ms." << std::endl;
+        using namespace std::chrono; // chill out, stdlib
+
+        auto end = steady_clock::now();
+        auto duration = duration_cast<milliseconds>(end - m_start);
+
+        constexpr auto format = "{} completed in {} milliseconds.";
+
+        auto message = std::format
+        (
+            format,
+            m_processName,
+            duration.count()
+        );
+
+        std::cout << message << std::endl;
     }
 
     void throwError
     (
         Error error,
-        const char* file,
-        int line,
-        const char* function,
+        const Location& location,
         const char* message
     )
     {
         constexpr auto notation = "{}:{} ({}): {}";
-        auto file_name = std::filesystem::path(file).filename();
+        auto file_name = std::filesystem::path(location.file).filename();
 
         auto what = std::format
         (
             notation,
             file_name.string(),
-            line,
-            function,
+            location.line,
+            location.function,
             message
         );
 

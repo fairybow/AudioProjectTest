@@ -1,7 +1,9 @@
 #pragma once
 
-#define USE_DX_BENCH_MACROS // Temp
-#define USE_AVX2 // Temp
+// Temps:
+#define USE_AVX2
+#define USE_DX_BENCH_MACROS
+#define USE_LOGGING
 
 #include "Diagnostics.h"
 
@@ -38,7 +40,7 @@ private:
     // Would it be fine to just use singleton and set benching on/off, or would
     // the added function calls (which aren't present when the macros are
     // no-ops) add up?
-    DX_BENCH(AudioAnalyzer); // Shut up, Intellisense
+    //DX_BENCH(AudioAnalyzer); // Shut up, Intellisense
 
     // FFT size represents the number of samples in a chunk
     // (2048 bytes with std::int16_t)

@@ -10,13 +10,19 @@
 
 // `std::source_location` doesn't allow us to obtain an unqualified function
 // signature like __FUNCTION__. (May need to adjust for platforms.)
+#define DX_LOCATION                             \
+    Diagnostics::Location                       \
+    {                                           \
+        __FILE__,                               \
+        __LINE__,                               \
+        __FUNCTION__                            \
+    }
+
 #define DX_THROW(error, message, ...)           \
     Diagnostics::throwError                     \
     (                                           \
         error,                                  \
-        __FILE__,                               \
-        __LINE__,                               \
-        __FUNCTION__,                           \
+        DX_LOCATION,                            \
         message,                                \
         ##__VA_ARGS__                           \
     )
@@ -57,8 +63,8 @@
 
 #else // !defined(USE_DX_BENCH_MACROS)
 
-#define DX_BENCH(processName)
-#define DX_BENCH_STOP(processName)
+#define DX_BENCH(processName) ((void)0)
+#define DX_BENCH_STOP(processName) ((void)0)
 
 #endif // defined(USE_DX_BENCH_MACROS)
 
@@ -75,6 +81,13 @@ namespace Diagnostics
         std::chrono::steady_clock::time_point m_start;
     };
 
+    struct Location
+    {
+        const char* file = nullptr;
+        int line = -1;
+        const char* function = nullptr;
+    };
+
     enum Error
     {
         InvalidArg,
@@ -85,9 +98,7 @@ namespace Diagnostics
     void throwError
     (
         Error error,
-        const char* file,
-        int line,
-        const char* function,
+        const Location& location,
         const char* message
     );
 
@@ -95,15 +106,23 @@ namespace Diagnostics
     void throwError
     (
         Error error,
-        const char* file,
-        int line,
-        const char* function,
+        const Location& location,
         const char* messageFormat,
         ArgsT&&... args
     )
     {
-        auto formatted_message = std::vformat(messageFormat, std::make_format_args(args...));
-        throwError(error, file, line, function, formatted_message.c_str());
+        auto formatted_message = std::vformat
+        (
+            messageFormat,
+            std::make_format_args(args...)
+        );
+
+        throwError
+        (
+            error,
+            location,
+            formatted_message.c_str()
+        );
     }
 
 } // namespace Diagnostics

@@ -1,6 +1,7 @@
-#define _CRT_SECURE_NO_WARNINGS // Your aren't my dad, Microsoft
+//#define _CRT_SECURE_NO_WARNINGS // Your aren't my dad, Microsoft
 
 #include "AudioAnalyzer.h"
+#include "Logging.h"
 
 #include <algorithm>
 #include <cmath>
@@ -63,6 +64,7 @@ AudioAnalyzer::Analysis AudioAnalyzer::process(const std::filesystem::path& inFi
 
 std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<std::filesystem::path>& inFiles)
 {
+    // Note, this will still print if an error throws. Is that a problem?
     DX_BENCH(Processing);
 
     std::vector<Analysis> analyses(inFiles.size());
@@ -70,11 +72,12 @@ std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<st
     return analyses;
 }
 
-// Section off read/write
+// Section off wisdom read/write
 void AudioAnalyzer::_initFftw()
 {
     // https://www.fftw.org/doc/SIMD-alignment-and-fftw_005fmalloc.html
-    // fftwf_alloc_real & fftwf_alloc_complex are wrappers that call fftwf_malloc
+    // fftwf_alloc_real & fftwf_alloc_complex are wrappers that call
+    // fftwf_malloc
 
     // Calculate FFT size-related properties
     m_numFrequencyBins = (m_fftSize / 2) + 1;
@@ -88,14 +91,13 @@ void AudioAnalyzer::_initFftw()
     // https://fftw.org/fftw3_doc/Words-of-Wisdom_002dSaving-Plans.html
 
     // Try to load wisdom from file
-    if (fftwf_import_wisdom_from_filename(m_wisdomPath.string().c_str()))
-    {
-        std::cout << "Wisdom loaded successfully from file: " << m_wisdomPath << std::endl;
-    }
-    else
-    {
-        std::cout << "No wisdom file found. Starting from scratch." << std::endl;
-    }
+    auto wisdom_path = m_wisdomPath.string();
+    auto wisdom_found = static_cast<bool>(
+        fftwf_import_wisdom_from_filename(wisdom_path.c_str()));
+
+    wisdom_found
+        ? LOGGING_COUT("Wisdom file loaded from \"{}\"", wisdom_path)
+        : LOGGING_CERR("Failed to find wisdom file at \"{}\"", wisdom_path);
 
     m_fftwPlan = fftwf_plan_dft_r2c_1d
     (
@@ -110,14 +112,13 @@ void AudioAnalyzer::_initFftw()
         std::filesystem::create_directories(m_wisdomPath.parent_path());
     }
 
-    // Save the wisdom to a file
-    if (fftwf_export_wisdom_to_filename(m_wisdomPath.string().c_str()))
+    // If we un-hard-code some values (namely m_fftSize), make sure this still
+    // works like we want it to
+    if (!wisdom_found)
     {
-        std::cout << "Wisdom saved to file: " << m_wisdomPath << std::endl;
-    }
-    else
-    {
-        std::cerr << "Failed to save wisdom to file." << std::endl;
+        fftwf_export_wisdom_to_filename(wisdom_path.c_str())
+            ? LOGGING_COUT("Wisdom file saved to \"{}\"", wisdom_path)
+            : LOGGING_CERR("Failed to save wisdom to disk (\"{}\")", wisdom_path);
     }
 }
 
