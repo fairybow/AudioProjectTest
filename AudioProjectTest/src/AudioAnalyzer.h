@@ -1,6 +1,7 @@
 #pragma once
 
-// Temps:
+// Temps (add to VS or CMake for d/r later)
+// cmd flags?
 #define USE_AVX2
 #define USE_DX_BENCH_MACROS
 #define USE_LOGGING
