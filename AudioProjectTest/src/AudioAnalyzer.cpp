@@ -96,10 +96,7 @@ void AudioAnalyzer::_initFftw()
     // fftwf_alloc_real & fftwf_alloc_complex are wrappers that call
     // fftwf_malloc
 
-    // Calculate FFT size-related properties
     m_numFrequencyBins = (m_fftSize / 2) + 1;
-
-    // Allocate input/output buffers
     m_fftInputBuffer = fftwf_alloc_real(m_fftSize);
     m_fftOutputBuffer = fftwf_alloc_complex(m_numFrequencyBins);
 

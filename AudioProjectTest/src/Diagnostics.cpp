@@ -38,12 +38,12 @@ namespace Diagnostics
         const char* message
     )
     {
-        constexpr auto notation = "{}:{} ({}): {}";
+        constexpr auto format = "{}:{} ({}): {}";
         auto file_name = std::filesystem::path(location.file).filename();
 
         auto what = std::format
         (
-            notation,
+            format,
             file_name.string(),
             location.line,
             location.function,
@@ -52,6 +52,7 @@ namespace Diagnostics
 
         switch (error)
         {
+        case InvalidArg:    throw std::invalid_argument(what.c_str());
         case OutOfRange:    throw std::out_of_range(what.c_str());
 
         default:
