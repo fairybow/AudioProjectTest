@@ -24,7 +24,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="scripts\PreBuild.bat">
+    <None Include="scripts\VSWinPreBuild.bat">
       <Filter>Scripts</Filter>
     </None>
     <None Include="notes\Todo 2.md">
@@ -45,6 +45,8 @@
     <None Include="notes\Todo.md">
       <Filter>Notes</Filter>
     </None>
+    <None Include="..\README.md" />
+    <None Include="..\.gitignore" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Diagnostics.cpp">
