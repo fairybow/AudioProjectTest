@@ -44,7 +44,7 @@ namespace Windowing
         // (2 * PI * i) by (N - 1) inside the cosine function.
 
         std::vector<float> window(size);
-        auto scale = (2.0f * PI) / (size - 1);
+        const auto scale = (2.0f * PI) / (size - 1);
 
         for (auto i = 0; i < size; ++i)
         {
