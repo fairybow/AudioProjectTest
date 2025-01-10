@@ -2,7 +2,7 @@
 
 ## Command Line Flags
 
-`--fft-size=x`
+### `--fft-size=x`
 
 The size of analyzed sample chunks. FFTW accepts nearly any value but works best with multiples of 2 (common sizes are [1024, 2048, and 4096](https://dobrian.github.io/cmp/topics/fourier-transform/1.getting-to-the-frequency-domain-theory.html)).
 
@@ -10,7 +10,7 @@ Valid values: Any positive value.
 
 Default value: 1024.
 
-`--window=x`
+### `--window=x`
 
 The desired windowing function.
 
@@ -18,7 +18,7 @@ Valid values: None, Triangular, Hann, Hamming, Blackman, FlatTop, or Gaussian.
 
 Default value: Hann.
 
-`--overlap=x`
+### `--overlap=x`
 
 The sample chunk overlap percentage.
 
@@ -26,7 +26,7 @@ Valid values: Any value from 0.0 to 0.9.
 
 Default value: 0.5.
 
-`--wisdom=x`
+### `--wisdom=x`
 
 The read/write path for FFTW wisdom.
 
