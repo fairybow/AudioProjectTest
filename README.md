@@ -28,11 +28,11 @@ Default value: 0.5.
 
 ### `--wisdom=x`
 
-The read/write path for FFTW wisdom.
+The read/write path for FFTW [wisdom](https://fftw.org/fftw3_doc/Words-of-Wisdom_002dSaving-Plans.html).
 
 Valid values: Any-ish.
 
-Default value: None (do not use FFTW wisdom).
+Default value: None.
 
 ## Building for Windows
 
