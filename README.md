@@ -1,5 +1,12 @@
 # AudioProjectTest
 
+## Command Line Flags
+
+`--fft-size=x` (default = 1024)
+`--window=x` (default = Hann)
+`--overlap=x` (default = 0.5)
+`--wisdom=x` (default = empty)
+
 ## Building for Windows
 
 See [`AudioProjectTest/notes/Setup.md`](AudioProjectTest/notes/Setup.md).
