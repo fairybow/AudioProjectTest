@@ -10,7 +10,8 @@
 #include <vector>
 
 // todo - an AudioAnalyzer::Config struct to pass instead of multiple args
-// todo - AA should probably know/control its flags, but not parsing
+// todo - AA should probably know/control its flags, but not parsing (and Main
+// shouldn't know about Windowing)
 // todo - parralel chunk processing
 // todo - error code for analysis struct, present if processing fails, keeping
 // us from throwing or whatever else
