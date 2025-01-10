@@ -224,6 +224,11 @@ void AudioAnalyzer::_process
     const std::vector<std::filesystem::path>& inFiles
 )
 {
+    if (inFiles.empty())
+    {
+        DX_THROW_INVALID_ARG("No input files provided.");
+    }
+
     for (std::size_t i = 0; i < inFiles.size(); ++i)
     {
         std::vector<float> static_chunk_start_times{}; // Eventual product

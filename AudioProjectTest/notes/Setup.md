@@ -12,6 +12,10 @@ ISO C++20 Standard (/std:c++20)
 
 (Because we're using `std::filesystem` and `std::format`.)
 
+### Debugging
+
+Add test command args (flags, files) here.
+
 ### C/C++
 
 General > Additional Include Directories
