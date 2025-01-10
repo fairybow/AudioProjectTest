@@ -21,9 +21,36 @@ constexpr auto FLAT_TOP = "FlatTop";
 constexpr auto GAUSSIAN = "Gaussian";
 constexpr auto PI = std::numbers::pi_v<float>;
 
+static std::string normalize(const std::string& string)
+{
+    std::string normalized = string;
+    auto first_c = true;
+
+    std::transform
+    (
+        normalized.begin(),
+        normalized.end(),
+        normalized.begin(),
+        [&first_c](unsigned char c) -> unsigned char
+        {
+            auto is_alpha = std::isalpha(c);
+
+            if (first_c && is_alpha)
+            {
+                first_c = false;
+                return std::toupper(c);
+            }
+
+            // Though, there should be no spaces for the result to matter.
+            return is_alpha ? std::tolower(c) : c;
+        }
+    );
+
+    return normalized;
+}
+
 namespace Windowing
 {
-    // Just use a map?
     std::string toString(Window windowType) noexcept
     {
         switch (windowType)
@@ -42,27 +69,7 @@ namespace Windowing
 
     Window fromString(const std::string& string) noexcept
     {
-        std::string normalized = string;
-        auto first_c = true;
-
-        std::transform
-        (
-            normalized.begin(),
-            normalized.end(),
-            normalized.begin(),
-            [&first_c](unsigned char c) -> unsigned char
-            {
-                auto is_alpha = std::isalpha(c);
-
-                if (first_c && is_alpha)
-                {
-                    first_c = false;
-                    return std::toupper(c);
-                }
-
-                return is_alpha ? std::tolower(c) : c;
-            }
-        );
+        auto normalized = normalize(string);
 
         if (normalized == TRIANGULAR)       return Triangular;
         else if (normalized == HANN)        return Hann;
