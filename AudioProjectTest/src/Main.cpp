@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+// todo - more robust static detection!
 // todo - an AudioAnalyzer::Config struct to pass instead of multiple args
 // todo - AA should probably know/control its flags, but not parsing (and Main
 // shouldn't know about Windowing)
