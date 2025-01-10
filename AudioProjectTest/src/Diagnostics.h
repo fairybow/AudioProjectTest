@@ -9,7 +9,7 @@
 // Potentially remove a lot or all (esp formatting) if it harms speed
 
 // `std::source_location` doesn't allow us to obtain an unqualified function
-// signature like __FUNCTION__. (May need to adjust for platforms.)
+// signature like __FUNCTION__. (I believe these may work on Linux as well.)
 #define DX_LOCATION                             \
     Diagnostics::Location                       \
     {                                           \

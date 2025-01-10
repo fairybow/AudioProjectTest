@@ -21,6 +21,10 @@
 class AudioAnalyzer
 {
 public:
+    // FFT size represents the number of samples in a chunk (2048 bytes with
+    // std::int16_t)
+    static constexpr const std::size_t DEFAULT_FFT_SIZE = 1024;
+
     struct Analysis
     {
         std::filesystem::path file{};
@@ -58,9 +62,6 @@ private:
     // no-ops) add up?
     //DX_BENCH(AudioAnalyzer); // Shut up, Intellisense
 
-    // FFT size represents the number of samples in a chunk
-    // (2048 bytes with std::int16_t)
-    static constexpr const std::size_t DEFAULT_FFT_SIZE = 1024;
     std::size_t m_fftSize;
 
     // Adjustable?
@@ -74,9 +75,12 @@ private:
     // due to no overlap), these discontinuities introduce high-frequency
     // artifacts, known as spectral leakage. So, I believe that without a window
     // we will always detect static in a chunk at its edges.
+
+public:
     static constexpr auto DEFAULT_WINDOW = Windowing::Hann;
     static constexpr auto DEFAULT_OVERLAP = 0.5f;
 
+private:
     float m_overlapDecPercent;
     Windowing::Window m_windowType;
     bool m_useWindowing = true;
@@ -88,6 +92,7 @@ private:
     // FFTW
     //--------------------------------------------------------------------------
 
+private:
     std::filesystem::path m_wisdomPath;
 
     std::size_t m_numFrequencyBins = 0;
@@ -102,6 +107,7 @@ private:
     // Processing
     //--------------------------------------------------------------------------
 
+private:
     enum class IsLastChunk
     {
         No = 0,
