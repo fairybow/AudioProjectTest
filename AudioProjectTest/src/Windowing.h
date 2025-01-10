@@ -18,6 +18,7 @@ namespace Windowing
     };
 
     std::string toString(Window windowType) noexcept;
+    Window fromString(const std::string& string) noexcept;
     std::vector<float> triangular(std::size_t size);
     std::vector<float> hann(std::size_t size);
     std::vector<float> hamming(std::size_t size);

@@ -1,8 +1,53 @@
+#include "Diagnostics.h"
 #include "Windowing.h"
 
+#include <algorithm>
 #include <cmath>
+#include <numbers>
 
-constexpr auto PI = 3.141593f; // Accurate enough?
+// Could use function, but would miss specific notated location from DX macro.
+// Although, user would know what window they were using, so maybe that's fine.
+// Also, is 2 the proper lower limit for a window? I'm sure it's way more
+// complicated than that...
+#define THROW_IF_BAD_SIZE \
+    if (size < 2) DX_THROW_INVALID_ARG("Insufficient window size")
+
+constexpr auto NONE = "None";
+constexpr auto TRIANGULAR = "Triangular";
+constexpr auto HANN = "Hann";
+constexpr auto HAMMING = "Hamming";
+constexpr auto BLACKMAN = "Blackman";
+constexpr auto FLAT_TOP = "FlatTop";
+constexpr auto GAUSSIAN = "Gaussian";
+constexpr auto PI = std::numbers::pi_v<float>;
+
+static std::string normalize(const std::string& string)
+{
+    std::string normalized = string;
+    auto first_c = true;
+
+    std::transform
+    (
+        normalized.begin(),
+        normalized.end(),
+        normalized.begin(),
+        [&first_c](unsigned char c) -> unsigned char
+        {
+            auto is_alpha = std::isalpha(c);
+
+            if (first_c && is_alpha)
+            {
+                first_c = false;
+                return std::toupper(c);
+            }
+
+            // Though, there should be no spaces for the result to matter.
+            return is_alpha ? std::tolower(c) : c;
+        }
+    );
+
+    return normalized;
+}
 
 namespace Windowing
 {
@@ -10,21 +55,36 @@ namespace Windowing
     {
         switch (windowType)
         {
-        case Triangular:    return "Triangular";
-        case Hann:          return "Hann";
-        case Hamming:       return "Hamming";
-        case Blackman:      return "Blackman";
-        case FlatTop:       return "FlatTop";
-        case Gaussian:      return "Gaussian";
+        case Triangular:    return TRIANGULAR;
+        case Hann:          return HANN;
+        case Hamming:       return HAMMING;
+        case Blackman:      return BLACKMAN;
+        case FlatTop:       return FLAT_TOP;
+        case Gaussian:      return GAUSSIAN;
 
         default:
-        case None:          return "None";
+        case None:          return NONE;
         }
+    }
+
+    Window fromString(const std::string& string) noexcept
+    {
+        auto normalized = normalize(string);
+
+        if (normalized == TRIANGULAR)       return Triangular;
+        else if (normalized == HANN)        return Hann;
+        else if (normalized == HAMMING)     return Hamming;
+        else if (normalized == BLACKMAN)    return Blackman;
+        else if (normalized == FLAT_TOP)    return FlatTop;
+        else if (normalized == GAUSSIAN)    return Gaussian;
+        else                                return None;
     }
 
     // Untested
     std::vector<float> triangular(std::size_t size)
     {
+        THROW_IF_BAD_SIZE;
+
         std::vector<float> window(size);
 
         for (auto i = 0; i < size; ++i)
@@ -37,6 +97,8 @@ namespace Windowing
 
     std::vector<float> hann(std::size_t size)
     {
+        THROW_IF_BAD_SIZE;
+
         // Hann formula
         // w[i] = 0.5 * (1 - cos( (2 * PI * i) / (N -1) ))
 
@@ -61,6 +123,8 @@ namespace Windowing
     // Untested
     std::vector<float> hamming(std::size_t size)
     {
+        THROW_IF_BAD_SIZE;
+
         std::vector<float> window(size);
         const auto scale = 2.0f * PI / (size - 1);
 
@@ -76,6 +140,8 @@ namespace Windowing
     // Untested
     std::vector<float> blackman(std::size_t size)
     {
+        THROW_IF_BAD_SIZE;
+
         std::vector<float> window(size);
         const auto scale = 2.0f * PI / (size - 1);
 
@@ -92,6 +158,8 @@ namespace Windowing
     // Untested
     std::vector<float> flatTop(std::size_t size)
     {
+        THROW_IF_BAD_SIZE;
+
         std::vector<float> window(size);
         const auto scale = 2.0f * PI / (size - 1);
 
@@ -109,6 +177,8 @@ namespace Windowing
     // Untested
     std::vector<float> gaussian(std::size_t size, float sigma)
     {
+        THROW_IF_BAD_SIZE;
+
         std::vector<float> window(size);
         const auto midpoint = (size - 1) / 2.0f; // Center of the window
 
@@ -125,3 +195,5 @@ namespace Windowing
     }
 
 } // namespace Windowing
+
+#undef THROW_IF_BAD_SIZE

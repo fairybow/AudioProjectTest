@@ -37,3 +37,37 @@ cd build
 cmake ..
 make
 ```
+
+## Command Line Flags
+
+### `--fft-size=x`
+
+The size of analyzed sample chunks. FFTW accepts nearly any value but works best with multiples of 2 (common sizes are [1024, 2048, and 4096](https://dobrian.github.io/cmp/topics/fourier-transform/1.getting-to-the-frequency-domain-theory.html)).
+
+Valid values: Any positive value.
+
+Default value: 1024.
+
+### `--window=x`
+
+The desired windowing function.
+
+Valid values: None, Triangular, Hann, Hamming, Blackman, FlatTop, or Gaussian.
+
+Default value: Hann.
+
+### `--overlap=x`
+
+The sample chunk overlap percentage.
+
+Valid values: Any value from 0.0 to 0.9.
+
+Default value: 0.5.
+
+### `--wisdom=x`
+
+The read/write path for FFTW [wisdom](https://fftw.org/fftw3_doc/Words-of-Wisdom_002dSaving-Plans.html).
+
+Valid values: Any-ish.
+
+Default value: None.

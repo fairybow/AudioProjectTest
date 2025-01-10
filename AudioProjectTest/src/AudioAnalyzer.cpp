@@ -112,13 +112,13 @@ void AudioAnalyzer::_initFftw()
         // https://fftw.org/fftw3_doc/Words-of-Wisdom_002dSaving-Plans.html
 
         // Try to load wisdom from file
-        auto wisdom_path = m_wisdomPath.string();
+        auto wisdom_path_str = m_wisdomPath.string();
         auto wisdom_found = static_cast<bool>(
-            fftwf_import_wisdom_from_filename(wisdom_path.c_str()));
+            fftwf_import_wisdom_from_filename(wisdom_path_str.c_str()));
 
         wisdom_found
-            ? LOGGING_COUT("Wisdom file loaded from \"{}\"", wisdom_path)
-            : LOGGING_CERR("Failed to find wisdom file at \"{}\"", wisdom_path);
+            ? LOGGING_COUT("Wisdom file loaded from \"{}\"", wisdom_path_str)
+            : LOGGING_CERR("Failed to find wisdom file at \"{}\"", wisdom_path_str);
 
         m_fftwPlan = fftwf_plan_dft_r2c_1d
         (
@@ -138,9 +138,9 @@ void AudioAnalyzer::_initFftw()
         // current values wasn't found.
         if (!wisdom_found)
         {
-            fftwf_export_wisdom_to_filename(wisdom_path.c_str())
-                ? LOGGING_COUT("Wisdom file saved to \"{}\"", wisdom_path)
-                : LOGGING_CERR("Failed to save wisdom to disk (\"{}\")", wisdom_path);
+            fftwf_export_wisdom_to_filename(wisdom_path_str.c_str())
+                ? LOGGING_COUT("Wisdom file saved to \"{}\"", wisdom_path_str)
+                : LOGGING_CERR("Failed to save wisdom to disk (\"{}\")", wisdom_path_str);
         }
     }
     else // (m_wisdomPath.empty())
