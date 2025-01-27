@@ -34,7 +34,7 @@ The project directory should be just one up from `fftw-3.3.10` after extraction.
 cd ../
 mkdir build
 cd build
-cmake ..
+cmake ../..
 make
 ```
 
