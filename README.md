@@ -24,7 +24,7 @@ git clone https://github.com/fairybow/AudioProjectTest`
 cd AudioProjectTest/AudioProjectTest/external
 ```
 
-### Extract FFTW source code
+### 3. Extract FFTW source code
 
 The FFTW archive is in the external folder (beside the Windows DLL archives). It can also be downloaded [here](https://www.fftw.org/download.html).
 
@@ -35,7 +35,7 @@ tar -xvf fftw-3.3.10.tar.gz
 cd fftw-3.3.10
 ```
 
-### Build & install FFTW
+### 4. Build & install FFTW
 
 Configure FFTW and build & install it to the system. Then navigate up (to the [project directory](AudioProjectTest)).
 
@@ -50,7 +50,7 @@ cd ../
 > By default, FFTW will install headers to `/usr/local/include` and libraries to `/usr/local/lib`. If you need to use a different location, specify it with the `--prefix=/not/usr/local` `configure` option and pass the paths to CMake (`cmake -DFFTW_INCLUDE_DIR=/not/usr/local/include -DFFTW_LIBRARY=/not/usr/local/lib/libfftw3f.a ../..
 `)
 
-### Build project
+### 5. Build project
 
 Make a build directory, enter it, then build the project with CMake.
 
