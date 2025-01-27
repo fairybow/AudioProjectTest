@@ -18,6 +18,10 @@
 // us from throwing or whatever else
 // todo - probably change the use_logging macro/flag to verbose, and make
 // run-time not compile-time
+// todo - add compiler flags to solution file for windows:
+// #define USE_AVX2
+// #define USE_DX_BENCH_MACROS
+// #define USE_LOGGING
 
 // Test args: "--wisdom=C:/Dev/fftwf_wisdom.dat" "C:/Dev/sample-audio-file-human-then-static.raw"
 
