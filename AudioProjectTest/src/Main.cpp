@@ -16,6 +16,8 @@
 // todo - parralel chunk processing
 // todo - error code for analysis struct, present if processing fails, keeping
 // us from throwing or whatever else
+// todo - probably change the use_logging macro/flag to verbose, and make
+// run-time not compile-time
 
 // Test args: "--wisdom=C:/Dev/fftwf_wisdom.dat" "C:/Dev/sample-audio-file-human-then-static.raw"
 
