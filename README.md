@@ -94,6 +94,6 @@ Default value: 0.5.
 
 The read/write path for FFTW [wisdom](https://fftw.org/fftw3_doc/Words-of-Wisdom_002dSaving-Plans.html).
 
-Valid values: Writeable path (`--wisdom=./wisdom` or `--wisdom=C:/Dev/fftwf_wisdom.dat`).
+Valid values: Writeable (parent directory exists), system-appropriate path (`--wisdom=./wisdom` or `--wisdom=C:/Dev/fftwf_wisdom.dat`).
 
 Default value: None.
