@@ -6,6 +6,19 @@ See [`AudioProjectTest/notes/Setup.md`](AudioProjectTest/notes/Setup.md).
 
 ## Building for Linux
 
+### Prereqs
+
+```bash
+sudo apt update
+sudo apt-get install git
+sudo apt install cmake
+sudo apt install build-essential
+```
+
+Navigate somewhere convenient and call `git clone https://github.com/fairybow/AudioProjectTest`.
+
+Then navigate to `cd AudioProjectTest/AudioProjectTest/external`.
+
 ### Extract FFTW `.tar.gz` contents
 
 ```bash
