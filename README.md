@@ -47,9 +47,12 @@ The project directory should be just one up from `fftw-3.3.10` after extraction.
 cd ../
 mkdir build
 cd build
-cmake ../..
+cmake -USE_AVX2=ON -DUSE_DX_BENCH_MACROS=ON -DUSE_LOGGING=ON ../..
 make
 ```
+
+> [!NOTE]
+> `USE_LOGGING` may become a run-time `--verbose` flag later.
 
 ## Command Line Flags
 
@@ -81,6 +84,6 @@ Default value: 0.5.
 
 The read/write path for FFTW [wisdom](https://fftw.org/fftw3_doc/Words-of-Wisdom_002dSaving-Plans.html).
 
-Valid values: Any-ish.
+Valid values: Writeable path (`--wisdom=./wisdom` or `--wisdom=C:/Dev/fftwf_wisdom.dat`).
 
 Default value: None.
