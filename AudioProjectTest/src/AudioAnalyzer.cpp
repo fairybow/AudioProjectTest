@@ -2,6 +2,7 @@
 #include "Logging.h"
 
 #include <algorithm>
+#include <cmath>
 #include <format>
 #include <ios>
 #include <string>

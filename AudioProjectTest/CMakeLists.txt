@@ -5,6 +5,7 @@ project(AudioProjectTest LANGUAGES CXX)
 
 # C++ standard settings
 set(CMAKE_CXX_STANDARD 20)
+message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
