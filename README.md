@@ -6,7 +6,7 @@ See [`AudioProjectTest/notes/Setup.md`](AudioProjectTest/notes/Setup.md).
 
 ## Building for Linux
 
-### Prereqs
+### 1. Prereqs
 
 ```bash
 sudo apt update
@@ -15,36 +15,46 @@ sudo apt install cmake
 sudo apt install build-essential
 ```
 
-Navigate somewhere convenient and call `git clone https://github.com/fairybow/AudioProjectTest`.
+### 2. Clone repository
 
-Then navigate to `cd AudioProjectTest/AudioProjectTest/external`.
+Clone, then navigate to `external`.
 
-### Extract FFTW `.tar.gz` contents
+```bash
+git clone https://github.com/fairybow/AudioProjectTest`
+cd AudioProjectTest/AudioProjectTest/external
+```
+
+### Extract FFTW source code
+
+The FFTW archive is in the external folder (beside the Windows DLL archives). It can also be downloaded [here](https://www.fftw.org/download.html).
+
+Extract it and then navigate inside.
 
 ```bash
 tar -xvf fftw-3.3.10.tar.gz
+cd fftw-3.3.10
 ```
-
-Extracts the `fftw-3.3.10` folder (beside the `external/FFTW-win` folder), which contains the source files.
 
 ### Build & install FFTW
 
-By default, FFTW will install headers to `/usr/local/include` and libraries to `/usr/local/lib`. If you need to use a different location, specify it with the `--prefix=/not/usr/local` `configure` option and pass the paths to CMake (`cmake -DFFTW_INCLUDE_DIR=/not/usr/local/include -DFFTW_LIBRARY=/not/usr/local/lib/libfftw3f.a ..
-`)
+Configure FFTW and build & install it to the system. Then navigate up (to the [project directory](AudioProjectTest)).
 
 ```bash
-cd fftw-3.3.10
 ./configure --enable-static --disable-shared --enable-float
 make
 sudo make install
+cd ../
 ```
+
+> [!NOTE]
+> By default, FFTW will install headers to `/usr/local/include` and libraries to `/usr/local/lib`. If you need to use a different location, specify it with the `--prefix=/not/usr/local` `configure` option and pass the paths to CMake (`cmake -DFFTW_INCLUDE_DIR=/not/usr/local/include -DFFTW_LIBRARY=/not/usr/local/lib/libfftw3f.a ../..
+`)
 
 ### Build project
 
-The project directory should be just one up from `fftw-3.3.10` after extraction.
+Make a build directory, enter it, then build the project with CMake.
 
 ```bash
-cd ../
 mkdir build
 cd build
 cmake -USE_AVX2=ON -DUSE_DX_BENCH_MACROS=ON -DUSE_LOGGING=ON ../..
