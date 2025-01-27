@@ -20,7 +20,7 @@ sudo apt install build-essential
 Clone, then navigate to `external`.
 
 ```bash
-git clone https://github.com/fairybow/AudioProjectTest`
+git clone https://github.com/fairybow/AudioProjectTest
 cd AudioProjectTest/AudioProjectTest/external
 ```
 
