@@ -43,7 +43,7 @@ Configure FFTW and build & install it to the system. Then navigate up (to the [p
 ./configure --enable-static --disable-shared --enable-float
 make
 sudo make install
-cd ..
+cd ../..
 ```
 
 > [!NOTE]
