@@ -10,6 +10,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Move to the project root (one level above AudioProjectTest/scripts)
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# Verify that CMakeLists.txt exists in PROJECT_ROOT
+if [ ! -f "$PROJECT_ROOT/CMakeLists.txt" ]; then
+    echo "Error: CMakeLists.txt not found in $PROJECT_ROOT"
+    exit 1
+fi
+
 # Navigate to external directory
 cd "$PROJECT_ROOT/external"
 
