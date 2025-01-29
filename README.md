@@ -10,16 +10,14 @@ See [`AudioProjectTest/notes/Setup.md`](AudioProjectTest/notes/Setup.md).
 
 ```bash
 sudo apt update
-sudo apt-get install git
-sudo apt install cmake
-sudo apt install build-essential
+sudo apt install git cmake build-essential
 ```
 
 ### 2. Setup
 
 ```bash
 git clone https://github.com/fairybow/AudioProjectTest
-chmod +x AudioProjectTest/AudioProjectTest/scripts/LinuxBuild.sh
+chmod +x AudioProjectTest/AudioProjectTest/scripts/LinuxBuild.sh # Only needed once
 ```
 
 ### 3. Build
@@ -28,13 +26,13 @@ chmod +x AudioProjectTest/AudioProjectTest/scripts/LinuxBuild.sh
 AudioProjectTest/AudioProjectTest/scripts/LinuxBuild.sh -DUSE_AVX2=ON -DUSE_DX_BENCH_MACROS=ON -DUSE_LOGGING=ON
 ```
 
-Find the executable at `AudioProjectTest/AudioProjectTest/build`.
+Find the executable in `AudioProjectTest/AudioProjectTest/build`.
 
-Run like:
+An example run looks like:
 
 ```bash
 cd AudioProjectTest/AudioProjectTest/build
-./AudioProjectTest { files directory }/*.raw --wisdom=./wisfile
+./AudioProjectTest $HOME/{ files directory }/*.raw --wisdom=./wisfile
 ```
 
 ## Command Line Flags
