@@ -5,11 +5,13 @@ set -e  # Exit immediately if a command exits with a non-zero status
 # Get the directory of the script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Repo is SolutionDir/ProjectDir/subdirs
+
 # Move to the project root (one level above AudioProjectTest/scripts)
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Navigate to external directory
-cd "$PROJECT_ROOT/AudioProjectTest/external"
+cd "$PROJECT_ROOT/external"
 
 # Extract FFTW
 tar -xvf fftw-3.3.10.tar.gz
@@ -27,5 +29,5 @@ cd "$PROJECT_ROOT"
 mkdir -p build && cd build
 
 # Run CMake and build the project
-cmake "$@" ..
+cmake "$@" "$PROJECT_ROOT"
 make -j$(nproc)
