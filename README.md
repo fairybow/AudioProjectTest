@@ -15,18 +15,26 @@ sudo apt install cmake
 sudo apt install build-essential
 ```
 
-### 2. Clone & Build
+### 2. Setup
 
 ```bash
 git clone https://github.com/fairybow/AudioProjectTest
-```
-
-```bash
 chmod +x AudioProjectTest/AudioProjectTest/scripts/LinuxBuild.sh
 ```
 
+### 3. Build
+
 ```bash
 AudioProjectTest/AudioProjectTest/scripts/LinuxBuild.sh -DUSE_AVX2=ON -DUSE_DX_BENCH_MACROS=ON -DUSE_LOGGING=ON
+```
+
+Find the executable at `AudioProjectTest/AudioProjectTest/build`.
+
+Run like:
+
+```bash
+cd AudioProjectTest/AudioProjectTest/build
+./AudioProjectTest { file }.raw --wisdom=./wisfile
 ```
 
 ## Command Line Flags
