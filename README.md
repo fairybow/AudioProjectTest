@@ -34,7 +34,7 @@ Run like:
 
 ```bash
 cd AudioProjectTest/AudioProjectTest/build
-./AudioProjectTest { file }.raw --wisdom=./wisfile
+./AudioProjectTest { files directory }/*.raw --wisdom=./wisfile
 ```
 
 ## Command Line Flags
