@@ -10,7 +10,7 @@ See [`AudioProjectTest/notes/Setup.md`](AudioProjectTest/notes/Setup.md).
 
 ```bash
 sudo apt update
-sudo apt install cmake build-essential
+sudo apt install git cmake build-essential
 ```
 
 ### 2. Setup
