@@ -15,54 +15,13 @@ sudo apt install cmake
 sudo apt install build-essential
 ```
 
-### 2. Clone repository
-
-Clone, then navigate to `external`.
+### 2. Clone & Build
 
 ```bash
 git clone https://github.com/fairybow/AudioProjectTest
-cd AudioProjectTest/AudioProjectTest/external
+chmod +x AudioProjectTest/AudioProjectTest/scripts/LinuxBuild.sh
+AudioProjectTest/AudioProjectTest/scripts/LinuxBuild.sh -DUSE_AVX2=ON -DUSE_DX_BENCH_MACROS=ON -DUSE_LOGGING=ON
 ```
-
-### 3. Extract FFTW source code
-
-The FFTW archive is in the external folder (beside the Windows DLL archives). It can also be downloaded [here](https://www.fftw.org/download.html).
-
-Extract it and then navigate inside.
-
-```bash
-tar -xvf fftw-3.3.10.tar.gz
-cd fftw-3.3.10
-```
-
-### 4. Build & install FFTW
-
-Configure FFTW and build & install it to the system. Then navigate up (to the [project directory](AudioProjectTest)).
-
-```bash
-./configure --enable-static --disable-shared --enable-float
-make
-sudo make install
-cd ../..
-```
-
-> [!NOTE]
-> By default, FFTW will install headers to `/usr/local/include` and libraries to `/usr/local/lib`. If you need to use a different location, specify it with the `--prefix=/not/usr/local` `configure` option and pass the paths to CMake (`cmake -DFFTW_INCLUDE_DIR=/not/usr/local/include -DFFTW_LIBRARY=/not/usr/local/lib/libfftw3f.a ../..
-`)
-
-### 5. Build project
-
-Make a build directory, enter it, then build the project with CMake.
-
-```bash
-mkdir build
-cd build
-cmake -DUSE_AVX2=ON -DUSE_DX_BENCH_MACROS=ON -DUSE_LOGGING=ON ..
-make
-```
-
-> [!NOTE]
-> `USE_LOGGING` may become a run-time `--verbose` flag later.
 
 ## Command Line Flags
 

@@ -47,6 +47,9 @@
     </None>
     <None Include="..\README.md" />
     <None Include="..\.gitignore" />
+    <None Include="scripts\LinuxBuild.sh">
+      <Filter>Scripts</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Diagnostics.cpp">
