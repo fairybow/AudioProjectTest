@@ -57,7 +57,7 @@ Make a build directory, enter it, then build the project with CMake.
 ```bash
 mkdir build
 cd build
-cmake -DUSE_AVX2=ON -DUSE_DX_BENCH_MACROS=ON -DUSE_LOGGING=ON ../..
+cmake -DUSE_AVX2=ON -DUSE_DX_BENCH_MACROS=ON -DUSE_LOGGING=ON ..
 make
 ```
 
