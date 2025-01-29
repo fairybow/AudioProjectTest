@@ -5,7 +5,7 @@ set -e  # Exit immediately if a command exits with a non-zero status
 # Get the directory of the script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Repo is SolutionDir/ProjectDir/subdirs
+# Repo strcture: SolutionDir/ProjectDir/subdir (like scripts)
 
 # Move to the project root (one level above AudioProjectTest/scripts)
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
