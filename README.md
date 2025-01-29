@@ -19,7 +19,13 @@ sudo apt install build-essential
 
 ```bash
 git clone https://github.com/fairybow/AudioProjectTest
+```
+
+```bash
 chmod +x AudioProjectTest/AudioProjectTest/scripts/LinuxBuild.sh
+```
+
+```bash
 AudioProjectTest/AudioProjectTest/scripts/LinuxBuild.sh -DUSE_AVX2=ON -DUSE_DX_BENCH_MACROS=ON -DUSE_LOGGING=ON
 ```
 
