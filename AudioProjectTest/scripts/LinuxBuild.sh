@@ -1,13 +1,11 @@
 #!/bin/bash
 
-set -e  # Exit immediately if a command exits with a non-zero status
+# Exit immediately if a command exits with a non-zero status
+set -e 
 
 # Get the directory of the script
+# Note: Repo strcture = SolutionDir/ProjectDir/subdir (src, scripts, etc)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Repo strcture: SolutionDir/ProjectDir/subdir (like scripts)
-
-# Move to the project root (one level above AudioProjectTest/scripts)
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Verify that CMakeLists.txt exists in PROJECT_ROOT
@@ -23,6 +21,11 @@ FFTW_LIBRARY_DIR="/usr/local/lib"
 # Flag to force FFTW rebuild
 FORCE_FFTW=0
 
+# Boolean build options (default OFF)
+USE_AVX2=OFF
+USE_DX_BENCH_MACROS=OFF
+USE_LOGGING=OFF
+
 # Process command-line arguments
 # We're checking for:
 # 1. Forced FFTW build
@@ -30,22 +33,37 @@ FORCE_FFTW=0
 CMAKE_ARGS=()
 for arg in "$@"; do
     case $arg in
-        --force-fftw)
+        --force-libbuild)
             FORCE_FFTW=1
             ;;
-        -DFFTW_INCLUDE_DIR=*)
-            FFTW_INCLUDE_DIR="${arg#*=}"
-            CMAKE_ARGS+=("$arg")
+        --avx2)
+            USE_AVX2=ON
             ;;
-        -DFFTW_LIBRARY=*)
-            FFTW_LIBRARY_DIR="$(dirname "${arg#*=}")"
-            CMAKE_ARGS+=("$arg")
+        --dx-bench)
+            USE_DX_BENCH_MACROS=ON
+            ;;
+        --logging)
+            USE_LOGGING=ON
+            ;;
+        --fftwlibpath=*)
+            FFTW_LIBRARY_DIR="${arg#*=}"
+            ;;
+        --fftwincpath=*)
+            FFTW_INCLUDE_DIR="${arg#*=}"
             ;;
         *)
-            CMAKE_ARGS+=("$arg")  # Store all other arguments for CMake
-            ;;
+            CMAKE_ARGS+=("$arg") # Preserve other args as CMake args
     esac
 done
+
+# Add boolean flags to CMake args
+CMAKE_ARGS+=(
+    "-DUSE_AVX2=$USE_AVX2"
+    "-DUSE_DX_BENCH_MACROS=$USE_DX_BENCH_MACROS"
+    "-DUSE_LOGGING=$USE_LOGGING"
+    "-DFFTW_INCLUDE_DIR=$FFTW_INCLUDE_DIR"
+    "-DFFTW_LIBRARY=$FFTW_LIBRARY_DIR/libfftw3f.a"
+)
 
 # Check if FFTW is already installed
 if [ $FORCE_FFTW -eq 0 ] && [ -f "$FFTW_INCLUDE_DIR/fftw3.h" ] && \
@@ -60,6 +78,12 @@ else
     # Navigate to external directory
     cd "$PROJECT_DIR/external"
 
+    # Verify that fftw-3.3.10.tar.gz exists in pwd
+    if [ ! -f "fftw-3.3.10.tar.gz" ]; then
+        echo "Error: FFTW archive not found in $PWD"
+        exit 1
+    fi
+
     # Extract FFTW
     tar -xvf fftw-3.3.10.tar.gz
     cd fftw-3.3.10
@@ -68,6 +92,8 @@ else
     ./configure --enable-static --disable-shared --enable-float
     make -j$(nproc)
     sudo make install
+
+    echo "FFTW built and installed."
 fi
 
 # Navigate back to the project root

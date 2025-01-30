@@ -23,7 +23,7 @@ chmod +x AudioProjectTest/AudioProjectTest/scripts/LinuxBuild.sh # Only needed o
 ### 3. Build
 
 ```bash
-AudioProjectTest/AudioProjectTest/scripts/LinuxBuild.sh -DUSE_AVX2=ON -DUSE_DX_BENCH_MACROS=ON -DUSE_LOGGING=ON
+AudioProjectTest/AudioProjectTest/scripts/LinuxBuild.sh --avx2 --dx-bench --logging
 ```
 
 Find the executable in `AudioProjectTest/AudioProjectTest/build`.
@@ -34,6 +34,20 @@ An example run looks like:
 cd AudioProjectTest/AudioProjectTest/build
 ./AudioProjectTest $HOME/{ files directory }/*.raw --wisdom=./wisfile
 ```
+
+#### a. Build Script Flags
+
+`--force-libbuild` (Forces the script to rebuild FFTW.)
+
+`--avx2` (Build will use AVX2 instructions.)
+
+`--dx-bench` (Build will show processing times.)
+
+`--logging`
+
+`--fftwlibpath` (Specify a custom library path for the FFTW build.)
+
+`--fftwincpath` (Specify a custom headers path for the FFTW build.)
 
 ## Command Line Flags
 
