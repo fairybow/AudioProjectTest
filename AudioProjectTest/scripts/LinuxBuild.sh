@@ -33,13 +33,13 @@ USE_LOGGING=OFF
 CMAKE_ARGS=()
 for arg in "$@"; do
     case $arg in
-        --force-libbuild)
+        --forcelibbuild)
             FORCE_FFTW=1
             ;;
         --avx2)
             USE_AVX2=ON
             ;;
-        --dx-bench)
+        --dxbench)
             USE_DX_BENCH_MACROS=ON
             ;;
         --logging)
