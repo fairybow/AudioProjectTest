@@ -10,38 +10,53 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Move to the project root (one level above AudioProjectTest/scripts)
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Default FFTW paths
-FFTW_INCLUDE_DIR="/usr/local/include"
-FFTW_LIBRARY_DIR="/usr/local/lib"
-
-# Parse command-line arguments for custom FFTW paths
-for arg in "$@"; do
-    case $arg in
-        -DFFTW_INCLUDE_DIR=*)
-            FFTW_INCLUDE_DIR="${arg#*=}"
-            ;;
-        -DFFTW_LIBRARY=*)
-            FFTW_LIBRARY_DIR="$(dirname "${arg#*=}")"
-            ;;
-    esac
-done
-
 # Verify that CMakeLists.txt exists in PROJECT_ROOT
 if [ ! -f "$PROJECT_DIR/CMakeLists.txt" ]; then
     echo "Error: CMakeLists.txt not found in $PROJECT_DIR"
     exit 1
 fi
 
+# Default FFTW paths
+FFTW_INCLUDE_DIR="/usr/local/include"
+FFTW_LIBRARY_DIR="/usr/local/lib"
+
+# Flag to force FFTW rebuild
+FORCE_FFTW=0
+
+# Process command-line arguments
+# We're checking for:
+# 1. Forced FFTW build
+# 2. FFTW lib & header path custom args
+CMAKE_ARGS=()
+for arg in "$@"; do
+    case $arg in
+        --force-fftw)
+            FORCE_FFTW=1
+            ;;
+        -DFFTW_INCLUDE_DIR=*)
+            FFTW_INCLUDE_DIR="${arg#*=}"
+            CMAKE_ARGS+=("$arg")
+            ;;
+        -DFFTW_LIBRARY=*)
+            FFTW_LIBRARY_DIR="$(dirname "${arg#*=}")"
+            CMAKE_ARGS+=("$arg")
+            ;;
+        *)
+            CMAKE_ARGS+=("$arg")  # Store all other arguments for CMake
+            ;;
+    esac
+done
+
 # Check if FFTW is already installed
-if [ -f "$FFTW_INCLUDE_DIR/fftw3.h" ] && \
+if [ $FORCE_FFTW -eq 0 ] && [ -f "$FFTW_INCLUDE_DIR/fftw3.h" ] && \
    [ -f "$FFTW_LIBRARY_DIR/libfftw3f.a" ]; then
     echo "FFTW is already installed at:"
     echo "  Include: $FFTW_INCLUDE_DIR"
     echo "  Library: $FFTW_LIBRARY_DIR"
     echo "Skipping FFTW build..."
 else
-    echo "FFTW not found. Building FFTW..."
-    
+    echo "Building FFTW (forced rebuild: $FORCE_FFTW)..."
+
     # Navigate to external directory
     cd "$PROJECT_DIR/external"
 
@@ -62,5 +77,5 @@ cd "$PROJECT_DIR"
 mkdir -p build && cd build
 
 # Run CMake and build the project
-cmake "$@" "$PROJECT_DIR"
+cmake "${CMAKE_ARGS[@]}" "$PROJECT_DIR"
 make -j$(nproc)
