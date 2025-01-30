@@ -37,17 +37,16 @@ cd AudioProjectTest/AudioProjectTest/build
 
 #### a. Build Script Flags
 
-`--force-libbuild` (Forces the script to rebuild FFTW.)
+\Here’s your information in a **clean and structured table** format:
 
-`--avx2` (Build will use AVX2 instructions.)
-
-`--dx-bench` (Build will show processing times.)
-
-`--logging`
-
-`--fftwlibpath` (Specify a custom library path for the FFTW build.)
-
-`--fftwincpath` (Specify a custom headers path for the FFTW build.)
+| **Flag** | **Description** | **Type** |
+|---|---|---|
+| `--force-libbuild` | Forces the script to rebuild FFTW. | Boolean |
+| `--avx2` | Build will use AVX2 instructions. | Boolean |
+| `--dx-bench` | Build will show processing times. | Boolean |
+| `--logging` | Enables logging during the build. | Boolean |
+| `--fftwlibpath` | Specify a custom library path for the FFTW build. | Non-boolean |
+| `--fftwincpath` | Specify a custom headers path for the FFTW build. | Non-boolean |
 
 ## Command Line Flags
 
