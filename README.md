@@ -37,8 +37,6 @@ cd AudioProjectTest/AudioProjectTest/build
 
 #### a. Build Script Flags
 
-\Here’s your information in a **clean and structured table** format:
-
 | **Flag** | **Description** | **Type** |
 |---|---|---|
 | `--force-libbuild` | Forces the script to rebuild FFTW. | Boolean |
