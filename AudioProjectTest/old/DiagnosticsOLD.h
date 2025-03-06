@@ -1,4 +1,4 @@
-#pragma once
+/*#pragma once
 
 #include <chrono>
 #include <format>
@@ -126,3 +126,4 @@ namespace Diagnostics
     }
 
 } // namespace Diagnostics
+*/

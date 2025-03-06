@@ -7,10 +7,8 @@
 C++ Language Standard
 
 ```
-ISO C++20 Standard (/std:c++20)
+ISO C++17 Standard (/std:c++17)
 ```
-
-(Because we're using `std::filesystem` and `std::format`.)
 
 ### Debugging
 

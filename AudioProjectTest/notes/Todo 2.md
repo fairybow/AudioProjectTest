@@ -30,7 +30,7 @@ It seems the current heuristic for detecting human voice may not be robust enoug
 ### **Potential Issues**
 1. **Incorrect Frequency Band Ranges:**
    - Your `mid_freq_energy` range (bins 5–20) might not fully capture the relevant frequencies for human voice.
-   - With 8 kHz sampling and `m_fftSize = 1024`, the frequency resolution is:
+   - With 8 kHz sampling and `fftSize_ = 1024`, the frequency resolution is:
      \[
      \text{Frequency per bin} = \frac{\text{Sampling Rate}}{\text{FFT Size}} = \frac{8000}{1024} \approx 7.81 \, \text{Hz}
      \]

@@ -1,4 +1,4 @@
-#include "Logging.h"
+/*#include "Logging.h"
 
 #include <iostream>
 
@@ -15,3 +15,4 @@ namespace Logging
     }
 
 } // namespace Logging
+*/

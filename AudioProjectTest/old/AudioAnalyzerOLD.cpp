@@ -22,11 +22,11 @@ AudioAnalyzer::~AudioAnalyzer()
 
 std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<std::filesystem::path>& inFiles, std::size_t fftSize)
 {
-    // m_fftSize Initializes to 0
+    // fftSize_ Initializes to 0
     auto fft_size = static_cast<int>(fftSize);
-    if (m_fftSize != fft_size)
+    if (fftSize_ != fft_size)
     {
-        m_fftSize = fft_size;
+        fftSize_ = fft_size;
         _initFftwPlan();
         _initHannWindow();
     }
@@ -69,48 +69,48 @@ void AudioAnalyzer::_initFftwPlan()
     _freeFftwPlan();
 
     // Read/write from wisdom:
-    m_numFrequencyBins = (m_fftSize / 2) + 1;
-    m_fftInputBuffer = fftwf_alloc_real(m_fftSize);
-    m_fftOutputBuffer = fftwf_alloc_complex(m_numFrequencyBins);
+    numFrequencyBins_ = (fftSize_ / 2) + 1;
+    fftInputBuffer_ = fftwf_alloc_real(fftSize_);
+    fftOutputBuffer_ = fftwf_alloc_complex(numFrequencyBins_);
 
-    m_fftwPlan = fftwf_plan_dft_r2c_1d
+    fftwPlan_ = fftwf_plan_dft_r2c_1d
     (
-        m_fftSize,
-        m_fftInputBuffer,
-        m_fftOutputBuffer,
+        fftSize_,
+        fftInputBuffer_,
+        fftOutputBuffer_,
         FFTW_ESTIMATE
     );
 }
 
 void AudioAnalyzer::_freeFftwPlan()
 {
-    if (m_fftwPlan)
+    if (fftwPlan_)
     {
-        fftwf_destroy_plan(m_fftwPlan);
-        m_fftwPlan = nullptr;
+        fftwf_destroy_plan(fftwPlan_);
+        fftwPlan_ = nullptr;
     }
 
-    if (m_fftOutputBuffer)
+    if (fftOutputBuffer_)
     {
-        fftwf_free(m_fftOutputBuffer);
-        m_fftOutputBuffer = nullptr;
+        fftwf_free(fftOutputBuffer_);
+        fftOutputBuffer_ = nullptr;
     }
 
-    if (m_fftInputBuffer)
+    if (fftInputBuffer_)
     {
-        fftwf_free(m_fftInputBuffer);
-        m_fftInputBuffer = nullptr;
+        fftwf_free(fftInputBuffer_);
+        fftInputBuffer_ = nullptr;
     }
 }
 
 void AudioAnalyzer::_initHannWindow()
 {
-    m_hannWindow.resize(m_fftSize);
+    m_hannWindow.resize(fftSize_);
 
-    for (std::size_t i = 0; i < m_fftSize; ++i)
+    for (std::size_t i = 0; i < fftSize_; ++i)
     {
         // Calculate the cosine of the normalized angular position for index i
-        auto cosine = std::cos((2.0f * m_pi * i) / (m_fftSize - 1));
+        auto cosine = std::cos((2.0f * m_pi * i) / (fftSize_ - 1));
 
         // Calculate the Hann window coefficient for index i
         m_hannWindow[i] = 0.5f * (1.0f - cosine);
@@ -120,7 +120,7 @@ void AudioAnalyzer::_initHannWindow()
 std::vector<float> AudioAnalyzer::_toSamples(std::ifstream& rawAudio) const
 {
     // Get the total size of the raw audio file in bytes
-    auto file_byte_size = _sizeOf(rawAudio);
+    auto file_byte_size = sizeOf_(rawAudio);
 
     // Size of a single audio sample in bytes (16-bit linear PCM)
     constexpr auto sample_byte_size = sizeof(std::int16_t);
@@ -159,7 +159,7 @@ std::vector<float> AudioAnalyzer::_toSamples(std::ifstream& rawAudio) const
     return samples;
 }
 
-std::streamsize AudioAnalyzer::_sizeOf(std::ifstream& stream) const
+std::streamsize AudioAnalyzer::sizeOf_(std::ifstream& stream) const
 {
     stream.seekg(0, std::ios::end);
     std::streamsize size = stream.tellg();
@@ -174,25 +174,25 @@ AudioAnalyzer::Analysis AudioAnalyzer::_analyzeFileSamples(const std::vector<flo
     // Divides into frames and perform FFT
 
     // Setup frames
-    auto hop_size = static_cast<std::size_t>(m_fftSize * m_overlapPercentage);
+    auto hop_size = static_cast<std::size_t>(fftSize_ * m_overlapPercentage);
 
-    // Divide the audio signal into overlapping chunks of size m_fftSize, with a
+    // Divide the audio signal into overlapping chunks of size fftSize_, with a
     // step of hop_size between each chunk, and calculate how many such chunks
     // (frames) fit into the signal.
     // Computes the number of additional frames (after the first one) that can
     // fit into the remaining signal. Adding 1 accounts for the first frame,
     // which starts at the very beginning of the signal (index 0).
-    std::size_t frame_count = ((fileSamples.size() - m_fftSize) / hop_size) + 1;
+    std::size_t frame_count = ((fileSamples.size() - fftSize_) / hop_size) + 1;
 
     // FFTW start:
 
-    std::vector<float> total_spectral_energy(m_numFrequencyBins);
+    std::vector<float> total_spectral_energy(numFrequencyBins_);
 
     // Rows represent frames (time slices of the signal).
     // Columns represent unique frequency bins.
     // So, magnitudes[f][k] gives the magnitude of the k-th frequency bin for
     // the f-th frame
-    std::vector<std::vector<float>> magnitudes(frame_count, std::vector<float>(m_numFrequencyBins));
+    std::vector<std::vector<float>> magnitudes(frame_count, std::vector<float>(numFrequencyBins_));
 
     // FFT and magnitude calculation
     for (std::size_t frame = 0; frame < frame_count; ++frame)
@@ -202,20 +202,20 @@ AudioAnalyzer::Analysis AudioAnalyzer::_analyzeFileSamples(const std::vector<flo
         std::size_t start_index = frame * hop_size;
 
         // Fill input buffer with Hann window applied:
-        for (std::size_t i = 0; i < m_fftSize; ++i)
+        for (std::size_t i = 0; i < fftSize_; ++i)
         {
             if ((start_index + i) < fileSamples.size())
-                m_fftInputBuffer[i] = fileSamples[start_index + i] * m_hannWindow[i];
+                fftInputBuffer_[i] = fileSamples[start_index + i] * m_hannWindow[i];
             else
-                m_fftInputBuffer[i] = 0.0f; // Zero-pad if there are not enough samples
+                fftInputBuffer_[i] = 0.0f; // Zero-pad if there are not enough samples
         }
 
-        fftwf_execute(m_fftwPlan);
+        fftwf_execute(fftwPlan_);
 
-        for (std::size_t bin = 0; bin < m_numFrequencyBins; ++bin)
+        for (std::size_t bin = 0; bin < numFrequencyBins_; ++bin)
         {
-            auto real = m_fftOutputBuffer[bin][0];
-            auto imaginary = m_fftOutputBuffer[bin][1];
+            auto real = fftOutputBuffer_[bin][0];
+            auto imaginary = fftOutputBuffer_[bin][1];
             auto magnitude = std::sqrt((real * real) + (imaginary * imaginary));
             magnitudes[frame][bin] = magnitude;
             total_spectral_energy[bin] += magnitude;
@@ -267,17 +267,17 @@ AudioAnalyzer::Analysis AudioAnalyzer::_analyzeFileSamples(const std::vector<flo
     // Divides into frames and perform FFT
 
     // Setup frames
-    auto hop_size = static_cast<std::size_t>(m_fftSize * m_overlapPercentage);
+    auto hop_size = static_cast<std::size_t>(fftSize_ * m_overlapPercentage);
     std::cout << "Hop size: " << hop_size << std::endl;
 
-    // Divide the audio signal into overlapping chunks of size m_fftSize
-    std::size_t frame_count = ((fileSamples.size() - m_fftSize) / hop_size) + 1;
+    // Divide the audio signal into overlapping chunks of size fftSize_
+    std::size_t frame_count = ((fileSamples.size() - fftSize_) / hop_size) + 1;
     std::cout << "Frame count: " << frame_count << std::endl;
 
-    std::vector<float> total_spectral_energy(m_numFrequencyBins);
+    std::vector<float> total_spectral_energy(numFrequencyBins_);
 
     // Initialize magnitudes matrix
-    std::vector<std::vector<float>> magnitudes(frame_count, std::vector<float>(m_numFrequencyBins));
+    std::vector<std::vector<float>> magnitudes(frame_count, std::vector<float>(numFrequencyBins_));
 
     // FFT and magnitude calculation
     for (std::size_t frame = 0; frame < frame_count; ++frame)
@@ -286,20 +286,20 @@ AudioAnalyzer::Analysis AudioAnalyzer::_analyzeFileSamples(const std::vector<flo
         //std::cout << "Processing frame " << frame << " starting at index " << start_index << std::endl;
 
         // Fill input buffer with Hann window applied
-        for (std::size_t i = 0; i < m_fftSize; ++i)
+        for (std::size_t i = 0; i < fftSize_; ++i)
         {
             if ((start_index + i) < fileSamples.size())
-                m_fftInputBuffer[i] = fileSamples[start_index + i] * m_hannWindow[i];
+                fftInputBuffer_[i] = fileSamples[start_index + i] * m_hannWindow[i];
             else
-                m_fftInputBuffer[i] = 0.0f; // Zero-pad if there are not enough samples
+                fftInputBuffer_[i] = 0.0f; // Zero-pad if there are not enough samples
         }
 
-        fftwf_execute(m_fftwPlan);
+        fftwf_execute(fftwPlan_);
 
-        for (std::size_t bin = 0; bin < m_numFrequencyBins; ++bin)
+        for (std::size_t bin = 0; bin < numFrequencyBins_; ++bin)
         {
-            auto real = m_fftOutputBuffer[bin][0];
-            auto imaginary = m_fftOutputBuffer[bin][1];
+            auto real = fftOutputBuffer_[bin][0];
+            auto imaginary = fftOutputBuffer_[bin][1];
             auto magnitude = std::sqrt((real * real) + (imaginary * imaginary));
             magnitudes[frame][bin] = magnitude;
             total_spectral_energy[bin] += magnitude;

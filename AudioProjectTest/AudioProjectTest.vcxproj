@@ -32,17 +32,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="old\AudioAnalyzerOLD.cpp" />
-    <ClCompile Include="src\Diagnostics.cpp" />
-    <ClCompile Include="src\Logging.cpp" />
+    <ClCompile Include="old\DiagnosticsOLD.cpp" />
+    <ClCompile Include="old\LoggingOLD.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\AudioAnalyzer.cpp" />
     <ClCompile Include="src\Windowing.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="old\AudioAnalyzerOLD.h" />
-    <ClInclude Include="src\Diagnostics.h" />
+    <ClInclude Include="old\DiagnosticsOLD.h" />
+    <ClInclude Include="old\LoggingOLD.h" />
     <ClInclude Include="src\AudioAnalyzer.h" />
-    <ClInclude Include="src\Logging.h" />
     <ClInclude Include="src\Windowing.h" />
   </ItemGroup>
   <ItemGroup>
@@ -134,7 +134,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)external\FFTW-win;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
     </ClCompile>
@@ -156,7 +156,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)external\FFTW-win;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
     </ClCompile>

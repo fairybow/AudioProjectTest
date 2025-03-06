@@ -23,8 +23,6 @@ FORCE_FFTW=0
 
 # Boolean build options (default OFF)
 USE_AVX2=OFF
-USE_DX_BENCH_MACROS=OFF
-USE_LOGGING=OFF
 
 # Process command-line arguments
 # We're checking for:
@@ -38,12 +36,6 @@ for arg in "$@"; do
             ;;
         --avx2)
             USE_AVX2=ON
-            ;;
-        --dxbench)
-            USE_DX_BENCH_MACROS=ON
-            ;;
-        --logging)
-            USE_LOGGING=ON
             ;;
         --fftwlibpath=*)
             FFTW_LIBRARY_DIR="${arg#*=}"
@@ -59,8 +51,6 @@ done
 # Add boolean flags to CMake args
 CMAKE_ARGS+=(
     "-DUSE_AVX2=$USE_AVX2"
-    "-DUSE_DX_BENCH_MACROS=$USE_DX_BENCH_MACROS"
-    "-DUSE_LOGGING=$USE_LOGGING"
     "-DFFTW_INCLUDE_DIR=$FFTW_INCLUDE_DIR"
     "-DFFTW_LIBRARY=$FFTW_LIBRARY_DIR/libfftw3f.a"
 )

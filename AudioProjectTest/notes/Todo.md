@@ -27,15 +27,15 @@ The `raw_audio.seekg()` call within the loop adds significant overhead, as it in
 
    Example:
    ```cpp
-   std::vector<std::int16_t> sliding_buffer(m_fftSize + hop_size);
+   std::vector<std::int16_t> sliding_buffer(fftSize_ + hop_size);
    raw_audio.read(reinterpret_cast<char*>(sliding_buffer.data()), sliding_buffer.size() * sizeof(std::int16_t));
 
    for (std::size_t chunk_i = 0; chunk_i < chunks_count; ++chunk_i) {
-       auto chunk_start_time = static_cast<float>(chunk_i * hop_size) / SAMPLING_RATE;
+       auto chunk_start_time = static_cast<float>(chunk_i * hop_size) / SAMPLING_RATE_;
        std::vector<std::int16_t> chunk(sliding_buffer.begin() + chunk_i * hop_size,
-                                       sliding_buffer.begin() + chunk_i * hop_size + m_fftSize);
+                                       sliding_buffer.begin() + chunk_i * hop_size + fftSize_);
 
-       _fftAnalyzeChunk(chunk, chunk_start_time, static_chunk_start_times);
+       fftAnalyzeChunk_(chunk, chunk_start_time, static_chunk_start_times);
    }
    ```
 
@@ -59,10 +59,10 @@ You can parallelize chunk processing by dividing chunks among multiple threads u
 std::vector<std::future<void>> futures;
 for (std::size_t chunk_i = 0; chunk_i < chunks_count; ++chunk_i) {
     futures.push_back(std::async(std::launch::async, [&]() {
-        auto chunk_start_time = static_cast<float>(chunk_i * hop_size) / SAMPLING_RATE;
+        auto chunk_start_time = static_cast<float>(chunk_i * hop_size) / SAMPLING_RATE_;
         std::vector<std::int16_t> chunk(buffer.begin() + chunk_i * hop_size,
-                                        buffer.begin() + chunk_i * hop_size + m_fftSize);
-        _fftAnalyzeChunk(chunk, chunk_start_time, static_chunk_start_times);
+                                        buffer.begin() + chunk_i * hop_size + fftSize_);
+        fftAnalyzeChunk_(chunk, chunk_start_time, static_chunk_start_times);
     }));
 }
 

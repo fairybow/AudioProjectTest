@@ -1,16 +1,18 @@
-#include "Diagnostics.h"
 #include "Windowing.h"
 
 #include <algorithm>
 #include <cmath>
-#include <numbers>
+#include <cstddef>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 // Could use function, but would miss specific notated location from DX macro.
 // Although, user would know what window they were using, so maybe that's fine.
 // Also, is 2 the proper lower limit for a window? I'm sure it's way more
 // complicated than that...
 #define THROW_IF_BAD_SIZE \
-    if (size < 2) DX_THROW_INVALID_ARG("Insufficient window size")
+    if (size < 2) throw std::invalid_argument("Insufficient window size");
 
 constexpr auto NONE = "None";
 constexpr auto TRIANGULAR = "Triangular";
@@ -19,9 +21,9 @@ constexpr auto HAMMING = "Hamming";
 constexpr auto BLACKMAN = "Blackman";
 constexpr auto FLAT_TOP = "FlatTop";
 constexpr auto GAUSSIAN = "Gaussian";
-constexpr auto PI = std::numbers::pi_v<float>;
+constexpr auto PI = 3.14159265358979323846f;
 
-static std::string normalize(const std::string& string)
+static std::string normalize_(const std::string& string)
 {
     std::string normalized = string;
     auto first_c = true;
@@ -69,7 +71,7 @@ namespace Windowing
 
     Window fromString(const std::string& string) noexcept
     {
-        auto normalized = normalize(string);
+        auto normalized = normalize_(string);
 
         if (normalized == TRIANGULAR)       return Triangular;
         else if (normalized == HANN)        return Hann;

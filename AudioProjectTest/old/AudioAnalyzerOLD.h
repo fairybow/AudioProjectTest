@@ -38,12 +38,12 @@ private:
     static constexpr auto m_overlapPercentage = 0.5f; // 0.0 - 1.0
 
     // FFTW takes an int, but size_t as entry point (in process call) makes sense, I think
-    int m_fftSize{};
+    int fftSize_{};
 
-    std::size_t m_numFrequencyBins{};
-    float* m_fftInputBuffer = nullptr;
-    fftwf_complex* m_fftOutputBuffer = nullptr;
-    fftwf_plan m_fftwPlan = nullptr;
+    std::size_t numFrequencyBins_{};
+    float* fftInputBuffer_ = nullptr;
+    fftwf_complex* fftOutputBuffer_ = nullptr;
+    fftwf_plan fftwPlan_ = nullptr;
 
     std::vector<float> m_hannWindow{};
 
@@ -54,7 +54,7 @@ private:
     void _freeFftwPlan();
     void _initHannWindow();
     std::vector<float> _toSamples(std::ifstream& rawAudio) const;
-    std::streamsize _sizeOf(std::ifstream& stream) const;
+    std::streamsize sizeOf_(std::ifstream& stream) const;
     Analysis _analyzeFileSamples(const std::vector<float>& fileSamples) const;
 
 }; // class AudioAnalyzer

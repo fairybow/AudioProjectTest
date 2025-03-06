@@ -1,4 +1,4 @@
-#pragma once
+/*#pragma once
 
 #include <format>
 
@@ -48,3 +48,4 @@ namespace Logging
     }
 
 } // namespace Logging
+*/

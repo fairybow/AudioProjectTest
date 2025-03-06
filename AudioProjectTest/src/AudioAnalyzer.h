@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Diagnostics.h"
 #include "Windowing.h"
 
 #include "fftw3.h"
@@ -56,10 +55,10 @@ private:
     // no-ops) add up?
     //DX_BENCH(AudioAnalyzer); // Shut up, Intellisense
 
-    std::size_t m_fftSize;
+    std::size_t fftSize_;
 
     // Adjustable?
-    static constexpr auto SAMPLING_RATE = 8000.0f;
+    static constexpr auto SAMPLING_RATE_ = 8000.0f;
 
     //--------------------------------------------------------------------------
     // Windowing
@@ -75,57 +74,57 @@ public:
     static constexpr auto DEFAULT_OVERLAP = 0.5f;
 
 private:
-    float m_overlapDecPercent;
-    Windowing::Window m_windowType;
-    bool m_useWindowing = true;
-    std::vector<float> m_window{};
+    float overlapDecPercent_;
+    Windowing::Window windowType_;
+    bool useWindowing_ = true;
+    std::vector<float> window_{};
 
-    void _initWindow();
+    void initWindow_();
 
     //--------------------------------------------------------------------------
     // FFTW
     //--------------------------------------------------------------------------
 
 private:
-    std::filesystem::path m_wisdomPath;
+    std::filesystem::path wisdomPath_;
 
-    std::size_t m_numFrequencyBins = 0;
-    float* m_fftInputBuffer = nullptr;
-    fftwf_complex* m_fftOutputBuffer = nullptr;
-    fftwf_plan m_fftwPlan = nullptr;
+    std::size_t numFrequencyBins_ = 0;
+    float* fftInputBuffer_ = nullptr;
+    fftwf_complex* fftOutputBuffer_ = nullptr;
+    fftwf_plan fftwPlan_ = nullptr;
 
-    void _initFftw();
-    void _freeFftw();
+    void initFftw_();
+    void freeFftw_();
 
     //--------------------------------------------------------------------------
     // Processing
     //--------------------------------------------------------------------------
 
 private:
-    enum class IsLastChunk
+    enum class IsLastChunk_
     {
         No = 0,
         Yes
     };
 
-    void _process
+    void process_
     (
         std::vector<Analysis>& analyses,
         const std::vector<std::filesystem::path>& inFiles
     );
 
-    void _fftAnalyzeChunk
+    void fftAnalyzeChunk_
     (
         const std::vector<std::int16_t>& chunk,
         float segmentStartTimeSeconds,
         std::vector<float>& staticChunkStartTimes,
-        IsLastChunk isLastChunk = {}
+        IsLastChunk_ isLastChunk = {}
     );
 
-    std::streamsize _sizeOf(std::ifstream& rawAudio) const;
-    void _prepareInputBuffer(const std::vector<std::int16_t>& chunk);
-    void _zeroPadInputBuffer(const std::vector<std::int16_t>& chunk);
-    std::vector<float> _magnitudesFromOutputBuffer() const;
-    bool _haveStatic(const std::vector<float>& magnitudes) const;
+    std::streamsize sizeOf_(std::ifstream& rawAudio) const;
+    void prepareInputBuffer_(const std::vector<std::int16_t>& chunk);
+    void zeroPadInputBuffer_(const std::vector<std::int16_t>& chunk);
+    std::vector<float> magnitudesFromOutputBuffer_() const;
+    bool haveStatic_(const std::vector<float>& magnitudes) const;
 
 }; // class AudioAnalyzer

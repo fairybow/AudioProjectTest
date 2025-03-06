@@ -40,9 +40,9 @@ We always zero pad the input buffer and write it to output, so I don't think we 
 
 ```
 // Optional: Clear FFT buffers (depending on FFTW behavior)
-//std::fill(m_fftInputBuffer, m_fftInputBuffer + m_fftSize, 0.0f);
-//std::fill(reinterpret_cast<float*>(m_fftOutputBuffer),
-    //reinterpret_cast<float*>(m_fftOutputBuffer) + (2 * m_numFrequencyBins),
+//std::fill(fftInputBuffer_, fftInputBuffer_ + fftSize_, 0.0f);
+//std::fill(reinterpret_cast<float*>(fftOutputBuffer_),
+    //reinterpret_cast<float*>(fftOutputBuffer_) + (2 * numFrequencyBins_),
     //0.0f);
 ```
 

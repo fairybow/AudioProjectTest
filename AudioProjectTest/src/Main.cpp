@@ -20,8 +20,6 @@
 // run-time not compile-time
 // todo - add compiler flags to solution file for windows:
 // #define USE_AVX2
-// #define USE_DX_BENCH_MACROS
-// #define USE_LOGGING
 
 // Test args: "--wisdom=C:/Dev/fftwf_wisdom.dat" "C:/Dev/sample-audio-file-human-then-static.raw"
 
@@ -98,7 +96,9 @@ void parseArgs
                 flags[key] = value;
             }
             else
+            {
                 flags[arg.substr(2)] = "true";
+            }
         }
         else // (arg.rfind("--", 0) != 0)
         {

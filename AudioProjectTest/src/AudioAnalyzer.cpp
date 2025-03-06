@@ -1,11 +1,22 @@
 #include "AudioAnalyzer.h"
-#include "Logging.h"
+#include "Windowing.h"
+
+#include "fftw3.h"
 
 #include <algorithm>
 #include <cmath>
-#include <format>
+#include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
 #include <ios>
+#include <iostream>
+#include <ostream>
+#include <sstream>
+#include <stdexcept>
 #include <string>
+#include <vector>
 
 #if defined(USE_AVX2)
 
@@ -19,33 +30,23 @@
 
 std::ostream& operator<<(std::ostream& os, const AudioAnalyzer::Analysis& a)
 {
-    constexpr auto format = \
-        "File: {}\n"                            \
-        "FFT Size: {}\n"                        \
-        "Windowing: {}\n"                       \
-        "Overlap: {}\n"                         \
-        "Chunk length (seconds): {:.2f}\n"      \
-        "Staticky chunk start times: [{}]";
+    std::ostringstream oss{};
+    oss << "File: " << a.file.string() << "\n"
+        << "FFT Size: " << a.fftSize << "\n"
+        << "Windowing: " << Windowing::toString(a.windowType) << "\n"
+        << "Overlap: " << (a.overlapDecPercent * 100.0f) << "%\n"
+        << "Chunk length (seconds): " << std::fixed << std::setprecision(2) << a.chunkDurationSeconds << "\n"
+        << "Staticky chunk start times: [";
 
     // Format staticChunkStartTimes as a comma-separated list
-    // Silo, change to avoid repeat allocations? Worth it?
-    std::string static_chunk_start_times{};
     for (std::size_t i = 0; i < a.staticChunkStartTimes.size(); ++i)
     {
-        if (i > 0) static_chunk_start_times += ", ";
-        static_chunk_start_times += std::format("{:.2f}", a.staticChunkStartTimes[i]);
+        if (i > 0) oss << ", ";
+        oss << std::fixed << std::setprecision(2) << a.staticChunkStartTimes[i];
     }
+    oss << "]";
 
-    return os << std::format
-    (
-        format,
-        a.file.string(),
-        a.fftSize,
-        Windowing::toString(a.windowType),
-        std::format("{}%", a.overlapDecPercent * 100.0f),
-        a.chunkDurationSeconds,
-        static_chunk_start_times
-    );
+    return os << oss.str();
 }
 
 AudioAnalyzer::AudioAnalyzer
@@ -55,13 +56,13 @@ AudioAnalyzer::AudioAnalyzer
     float overlap,
     const std::filesystem::path& wisdomPath
 )
-    : m_fftSize(std::max(std::size_t(1), fftSize))
-    , m_windowType(windowType)
-    , m_overlapDecPercent(std::clamp(overlap, 0.0f, 0.9f))
-    , m_wisdomPath(wisdomPath)
+    : fftSize_(std::max(std::size_t(1), fftSize))
+    , windowType_(windowType)
+    , overlapDecPercent_(std::clamp(overlap, 0.0f, 0.9f))
+    , wisdomPath_(wisdomPath)
 {
-    _initFftw();
-    _initWindow();
+    initFftw_();
+    initWindow_();
 }
 
 AudioAnalyzer::AudioAnalyzer(const std::filesystem::path& wisdomPath)
@@ -71,7 +72,7 @@ AudioAnalyzer::AudioAnalyzer(const std::filesystem::path& wisdomPath)
 
 AudioAnalyzer::~AudioAnalyzer()
 {
-    _freeFftw();
+    freeFftw_();
 }
 
 // Convenience overload for single process
@@ -82,56 +83,58 @@ AudioAnalyzer::Analysis AudioAnalyzer::process(const std::filesystem::path& inFi
 
 std::vector<AudioAnalyzer::Analysis> AudioAnalyzer::process(const std::vector<std::filesystem::path>& inFiles)
 {
-    // Note, this will still print if an error throws. Is that a problem?
-    DX_BENCH(Processing);
-
     std::vector<Analysis> analyses(inFiles.size());
-    _process(analyses, inFiles);
+    process_(analyses, inFiles);
     return analyses;
 }
 
 // Section off wisdom read/write
-void AudioAnalyzer::_initFftw()
+void AudioAnalyzer::initFftw_()
 {
     // https://www.fftw.org/doc/SIMD-alignment-and-fftw_005fmalloc.html
     // fftwf_alloc_real & fftwf_alloc_complex are wrappers that call
     // fftwf_malloc
 
-    m_numFrequencyBins = (m_fftSize / 2) + 1;
-    m_fftInputBuffer = fftwf_alloc_real(m_fftSize);
-    m_fftOutputBuffer = fftwf_alloc_complex(m_numFrequencyBins);
+    numFrequencyBins_ = (fftSize_ / 2) + 1;
+    fftInputBuffer_ = fftwf_alloc_real(fftSize_);
+    fftOutputBuffer_ = fftwf_alloc_complex(numFrequencyBins_);
 
-    if (!m_fftInputBuffer || !m_fftOutputBuffer)
+    if (!fftInputBuffer_ || !fftOutputBuffer_)
     {
-        DX_THROW_RUN_TIME("Failed to allocate FFT buffers.");
+        throw std::runtime_error("Failed to allocate FFT buffers.");
     }
 
-    auto fft_size = static_cast<int>(m_fftSize);
+    auto fft_size = static_cast<int>(fftSize_);
 
-    if (!m_wisdomPath.empty())
+    if (!wisdomPath_.empty())
     {
         // https://fftw.org/fftw3_doc/Words-of-Wisdom_002dSaving-Plans.html
 
         // Try to load wisdom from file
-        auto wisdom_path_str = m_wisdomPath.string();
+        auto wisdom_path_str = wisdomPath_.string();
         auto wisdom_found = static_cast<bool>(
             fftwf_import_wisdom_from_filename(wisdom_path_str.c_str()));
 
-        wisdom_found
-            ? LOGGING_COUT("Wisdom file loaded from \"{}\"", wisdom_path_str)
-            : LOGGING_CERR("Failed to find wisdom file at \"{}\"", wisdom_path_str);
+        if (wisdom_found)
+        {
+            std::cout << "Wisdom file loaded from " << wisdom_path_str << std::endl;
+        }
+        else
+        {
+            std::cerr << "Failed to find wisdom file at " << wisdom_path_str << std::endl;
+        }
 
-        m_fftwPlan = fftwf_plan_dft_r2c_1d
+        fftwPlan_ = fftwf_plan_dft_r2c_1d
         (
             fft_size,
-            m_fftInputBuffer,
-            m_fftOutputBuffer,
+            fftInputBuffer_,
+            fftOutputBuffer_,
             FFTW_MEASURE
         );
 
-        if (!std::filesystem::exists(m_wisdomPath.parent_path()))
+        if (!std::filesystem::exists(wisdomPath_.parent_path()))
         {
-            std::filesystem::create_directories(m_wisdomPath.parent_path());
+            std::filesystem::create_directories(wisdomPath_.parent_path());
         }
 
         // Double check that this saves appropriately with variable FFT size,
@@ -139,78 +142,83 @@ void AudioAnalyzer::_initFftw()
         // current values wasn't found.
         if (!wisdom_found)
         {
-            fftwf_export_wisdom_to_filename(wisdom_path_str.c_str())
-                ? LOGGING_COUT("Wisdom file saved to \"{}\"", wisdom_path_str)
-                : LOGGING_CERR("Failed to save wisdom to disk (\"{}\")", wisdom_path_str);
+            if (fftwf_export_wisdom_to_filename(wisdom_path_str.c_str()))
+            {
+                std::cout << "Wisdom file saved to " << wisdom_path_str << std::endl;
+            }
+            else
+            {
+                std::cerr << "Failed to save wisdom to disk (" << wisdom_path_str << ")" << std::endl;
+            }
         }
     }
-    else // (m_wisdomPath.empty())
+    else // (wisdomPath_.empty())
     {
-        m_fftwPlan = fftwf_plan_dft_r2c_1d
+        fftwPlan_ = fftwf_plan_dft_r2c_1d
         (
             fft_size,
-            m_fftInputBuffer,
-            m_fftOutputBuffer,
+            fftInputBuffer_,
+            fftOutputBuffer_,
             FFTW_ESTIMATE
         );
     }
 }
 
-void AudioAnalyzer::_freeFftw()
+void AudioAnalyzer::freeFftw_()
 {
     // If we only call this in destructor, then I guess we don't need checks or
     // nullptr assignment
-    /*if (m_fftwPlan)
+    /*if (fftwPlan_)
     {
-        fftwf_destroy_plan(m_fftwPlan);
-        m_fftwPlan = nullptr;
+        fftwf_destroy_plan(fftwPlan_);
+        fftwPlan_ = nullptr;
     }
 
-    if (m_fftOutputBuffer)
+    if (fftOutputBuffer_)
     {
-        fftwf_free(m_fftOutputBuffer);
-        m_fftOutputBuffer = nullptr;
+        fftwf_free(fftOutputBuffer_);
+        fftOutputBuffer_ = nullptr;
     }
 
-    if (m_fftInputBuffer)
+    if (fftInputBuffer_)
     {
-        fftwf_free(m_fftInputBuffer);
-        m_fftInputBuffer = nullptr;
+        fftwf_free(fftInputBuffer_);
+        fftInputBuffer_ = nullptr;
     }*/
 
-    fftwf_destroy_plan(m_fftwPlan);
-    fftwf_free(m_fftOutputBuffer);
-    fftwf_free(m_fftInputBuffer);
+    fftwf_destroy_plan(fftwPlan_);
+    fftwf_free(fftOutputBuffer_);
+    fftwf_free(fftInputBuffer_);
 }
 
-void AudioAnalyzer::_initWindow()
+void AudioAnalyzer::initWindow_()
 {
     // Can perhaps get some benefit from testing different window types.
     // Ultimately, may only need one.
-    switch (m_windowType)
+    switch (windowType_)
     {
     case Windowing::Triangular:
-        m_window = Windowing::triangular(m_fftSize);
+        window_ = Windowing::triangular(fftSize_);
         break;
     case Windowing::Hann:
-        m_window = Windowing::hann(m_fftSize);
+        window_ = Windowing::hann(fftSize_);
         break;
     case Windowing::Hamming:
-        m_window = Windowing::hamming(m_fftSize);
+        window_ = Windowing::hamming(fftSize_);
         break;
     case Windowing::Blackman:
-        m_window = Windowing::blackman(m_fftSize);
+        window_ = Windowing::blackman(fftSize_);
         break;
     case Windowing::FlatTop:
-        m_window = Windowing::flatTop(m_fftSize);
+        window_ = Windowing::flatTop(fftSize_);
         break;
     case Windowing::Gaussian:
-        m_window = Windowing::gaussian(m_fftSize);
+        window_ = Windowing::gaussian(fftSize_);
         break;
 
     default:
     case Windowing::None:
-        m_useWindowing = false;
+        useWindowing_ = false;
         break;
     }
 }
@@ -219,7 +227,7 @@ void AudioAnalyzer::_initWindow()
 // Find common elements later
 // Refine into smaller functions (potentially called from both this and AVX2
 // function)
-void AudioAnalyzer::_process
+void AudioAnalyzer::process_
 (
     std::vector<Analysis>& analyses,
     const std::vector<std::filesystem::path>& inFiles
@@ -227,7 +235,7 @@ void AudioAnalyzer::_process
 {
     if (inFiles.empty())
     {
-        DX_THROW_INVALID_ARG("No input files provided.");
+        throw std::invalid_argument("No input files provided.");
     }
 
     for (std::size_t i = 0; i < inFiles.size(); ++i)
@@ -239,41 +247,47 @@ void AudioAnalyzer::_process
         // Analysis for this file, or something)
         if (!std::filesystem::exists(in_file))
         {
-            DX_THROW_RUN_TIME("\"{}\" does not exist.", in_file.string());
+            std::ostringstream oss{};
+            oss << "\"" << in_file.string() << "\" does not exist.";
+            throw std::runtime_error(oss.str());
         }
 
         if (!std::filesystem::is_regular_file(in_file))
         {
-            DX_THROW_RUN_TIME("\"{}\" is not a regular file.", in_file.string());
+            std::ostringstream oss{};
+            oss << "\"" << in_file.string() << "\" is not a regular file.";
+            throw std::runtime_error(oss.str());
         }
 
         std::ifstream raw_audio(in_file, std::ios::binary);
 
         if (!raw_audio)
         {
-            DX_THROW_RUN_TIME("Unable to open file at \"{}\"", in_file.string());
+            std::ostringstream oss{};
+            oss << "Unable to open file at \"" << in_file.string() << "\"";
+            throw std::runtime_error(oss.str());
         }
 
         // Calculate raw audio stream size
-        auto raw_audio_size = _sizeOf(raw_audio);
+        auto raw_audio_size = sizeOf_(raw_audio);
 
         // Calculate number of chunks
         // Before separating this off, we will need other variables in it
         // (chunks_count, for example)...
-        auto hop_size = static_cast<std::size_t>(m_fftSize * (1.0f - m_overlapDecPercent));
+        auto hop_size = static_cast<std::size_t>(fftSize_ * (1.0f - overlapDecPercent_));
         auto total_samples = raw_audio_size / sizeof(std::int16_t);
 
-        // Handle edge case where total_samples < m_fftSize
-        auto chunks_count = (total_samples > m_fftSize)
-            ? (((total_samples - m_fftSize) / hop_size) + 1)
+        // Handle edge case where total_samples < fftSize_
+        auto chunks_count = (total_samples > fftSize_)
+            ? (((total_samples - fftSize_) / hop_size) + 1)
             : 1;
 
         if (chunks_count < 1)
         {
-            DX_THROW_RUN_TIME("Lol what");
+            throw std::runtime_error("Lol what");
         }
 
-        std::vector<std::int16_t> buffer(m_fftSize);
+        std::vector<std::int16_t> buffer(fftSize_);
 
         if (chunks_count == 1)
         {
@@ -283,12 +297,12 @@ void AudioAnalyzer::_process
                 total_samples * sizeof(std::int16_t)
             );
 
-            _fftAnalyzeChunk
+            fftAnalyzeChunk_
             (
                 buffer,
                 0.0f,
                 static_chunk_start_times,
-                IsLastChunk::Yes
+                IsLastChunk_::Yes
             );
         }
         else // (chunks_count > 1)
@@ -302,12 +316,12 @@ void AudioAnalyzer::_process
                 raw_audio.read
                 (
                     reinterpret_cast<char*>(buffer.data()),
-                    m_fftSize * sizeof(std::int16_t)
+                    fftSize_ * sizeof(std::int16_t)
                 );
 
-                auto chunk_start_time = static_cast<float>(chunk_i * hop_size) / SAMPLING_RATE;
+                auto chunk_start_time = static_cast<float>(chunk_i * hop_size) / SAMPLING_RATE_;
 
-                _fftAnalyzeChunk
+                fftAnalyzeChunk_
                 (
                     buffer,
                     chunk_start_time,
@@ -318,7 +332,7 @@ void AudioAnalyzer::_process
                 // Sliding buffer instead?
                 raw_audio.seekg
                 (
-                    -static_cast<std::streamoff>(m_fftSize - hop_size) * sizeof(std::int16_t),
+                    -static_cast<std::streamoff>(fftSize_ - hop_size) * sizeof(std::int16_t),
                     std::ios::cur
                 );
             }
@@ -327,7 +341,7 @@ void AudioAnalyzer::_process
             if (has_remainder)
             {
                 std::size_t remainder_samples = total_samples - (chunks_count * hop_size);
-                std::vector<std::int16_t> remainder_buffer(m_fftSize, 0);
+                std::vector<std::int16_t> remainder_buffer(fftSize_, 0);
 
                 raw_audio.read
                 (
@@ -335,14 +349,14 @@ void AudioAnalyzer::_process
                     remainder_samples * sizeof(std::int16_t)
                 );
 
-                auto remainder_start_time = static_cast<float>(chunks_count * hop_size) / SAMPLING_RATE;
+                auto remainder_start_time = static_cast<float>(chunks_count * hop_size) / SAMPLING_RATE_;
 
-                _fftAnalyzeChunk
+                fftAnalyzeChunk_
                 (
                     remainder_buffer,
                     remainder_start_time,
                     static_chunk_start_times,
-                    IsLastChunk::Yes
+                    IsLastChunk_::Yes
                 );
             }
         }
@@ -351,41 +365,41 @@ void AudioAnalyzer::_process
         analyses[i] =
         {
             in_file,
-            m_fftSize,
-            m_windowType,
-            m_overlapDecPercent,
-            static_cast<float>(m_fftSize) / SAMPLING_RATE,
+            fftSize_,
+            windowType_,
+            overlapDecPercent_,
+            static_cast<float>(fftSize_) / SAMPLING_RATE_,
             static_chunk_start_times
         };
     }
 }
 
-void AudioAnalyzer::_fftAnalyzeChunk
+void AudioAnalyzer::fftAnalyzeChunk_
 (
     const std::vector<std::int16_t>& chunk,
     float segmentStartTimeSeconds,
     std::vector<float>& staticChunkStartTimes,
-    IsLastChunk isLastChunk
+    IsLastChunk_ isLastChunk
 )
 {
-    _prepareInputBuffer(chunk);
+    prepareInputBuffer_(chunk);
 
-    if (isLastChunk == IsLastChunk::Yes)
+    if (isLastChunk == IsLastChunk_::Yes)
     {
-        _zeroPadInputBuffer(chunk);
+        zeroPadInputBuffer_(chunk);
     }
 
-    fftwf_execute(m_fftwPlan);
+    fftwf_execute(fftwPlan_);
 
-    auto magnitudes = _magnitudesFromOutputBuffer();
+    auto magnitudes = magnitudesFromOutputBuffer_();
 
-    if (_haveStatic(magnitudes))
+    if (haveStatic_(magnitudes))
     {
         staticChunkStartTimes.emplace_back(segmentStartTimeSeconds);
     }
 }
 
-std::streamsize AudioAnalyzer::_sizeOf(std::ifstream& rawAudio) const
+std::streamsize AudioAnalyzer::sizeOf_(std::ifstream& rawAudio) const
 {
     rawAudio.seekg(0, std::ios::end);
     std::streamsize raw_audio_size = rawAudio.tellg();
@@ -395,21 +409,21 @@ std::streamsize AudioAnalyzer::_sizeOf(std::ifstream& rawAudio) const
 
 // Copy chunk data into FFT input buffer with scaling and Hann window
 // Add optional windows and an option for none
-void AudioAnalyzer::_prepareInputBuffer(const std::vector<std::int16_t>& chunk)
+void AudioAnalyzer::prepareInputBuffer_(const std::vector<std::int16_t>& chunk)
 {
 
 #if !defined(USE_AVX2)
 
     // Checking outside the for loop faster? Negligible, I assume?
-    if (m_useWindowing)
+    if (useWindowing_)
     {
         for (std::size_t i = 0; i < chunk.size(); ++i)
-            m_fftInputBuffer[i] = chunk[i] * m_window[i];
+            fftInputBuffer_[i] = chunk[i] * window_[i];
     }
     else
     {
         for (std::size_t i = 0; i < chunk.size(); ++i)
-            m_fftInputBuffer[i] = chunk[i];
+            fftInputBuffer_[i] = chunk[i];
     }
 
 #else // defined(USE_AVX2)
@@ -417,7 +431,7 @@ void AudioAnalyzer::_prepareInputBuffer(const std::vector<std::int16_t>& chunk)
     const auto chunk_size = chunk.size();
     std::size_t i = 0;
 
-    if (m_useWindowing)
+    if (useWindowing_)
     {
         // Process 8 elements at a time
         for (; i + 7 < chunk_size; i += 8)
@@ -427,16 +441,16 @@ void AudioAnalyzer::_prepareInputBuffer(const std::vector<std::int16_t>& chunk)
             auto chunk_vals = _mm256_cvtepi32_ps(_mm256_cvtepi16_epi32(chunk_vals_16));
 
             // Load Hann window coefficients
-            auto window_vals = _mm256_loadu_ps(&m_window[i]);
+            auto window_vals = _mm256_loadu_ps(&window_[i]);
 
             // Perform element-wise multiplication
             auto result = _mm256_mul_ps(chunk_vals, window_vals);
 
             // Store the results
-            _mm256_storeu_ps(&m_fftInputBuffer[i], result);
+            _mm256_storeu_ps(&fftInputBuffer_[i], result);
         }
     }
-    else // (!m_useWindowing)
+    else // (!useWindowing_)
     {
         for (; i + 7 < chunk_size; i += 8)
         {
@@ -444,20 +458,20 @@ void AudioAnalyzer::_prepareInputBuffer(const std::vector<std::int16_t>& chunk)
             auto chunk_vals = _mm256_cvtepi32_ps(_mm256_cvtepi16_epi32(chunk_vals_16));
 
             // Store the results directly
-            _mm256_storeu_ps(&m_fftInputBuffer[i], chunk_vals);
+            _mm256_storeu_ps(&fftInputBuffer_[i], chunk_vals);
         }
     }
 
     // Process remaining elements
-    if (m_useWindowing)
+    if (useWindowing_)
     {
         for (; i < chunk_size; ++i)
-            m_fftInputBuffer[i] = chunk[i] * m_window[i];
+            fftInputBuffer_[i] = chunk[i] * window_[i];
     }
     else
     {
         for (; i < chunk_size; ++i)
-            m_fftInputBuffer[i] = chunk[i];
+            fftInputBuffer_[i] = chunk[i];
     }
 
 #endif // !defined(USE_AVX2)
@@ -465,16 +479,16 @@ void AudioAnalyzer::_prepareInputBuffer(const std::vector<std::int16_t>& chunk)
 }
 
 // Zero-pad the remainder of the buffer if the chunk is smaller than
-// m_fftSize (which I would assume is almost always the case)
-void AudioAnalyzer::_zeroPadInputBuffer(const std::vector<std::int16_t>& chunk)
+// fftSize_ (which I would assume is almost always the case)
+void AudioAnalyzer::zeroPadInputBuffer_(const std::vector<std::int16_t>& chunk)
 {
 
 #if !defined(USE_AVX2)
 
     std::fill
     (
-        m_fftInputBuffer + chunk.size(),
-        m_fftInputBuffer + m_fftSize,
+        fftInputBuffer_ + chunk.size(),
+        fftInputBuffer_ + fftSize_,
         0.0f
     );
 
@@ -482,15 +496,15 @@ void AudioAnalyzer::_zeroPadInputBuffer(const std::vector<std::int16_t>& chunk)
 
     auto zero_vec = _mm256_setzero_ps();
     std::size_t j = chunk.size();
-    for (; j + 7 < m_fftSize; j += 8)
+    for (; j + 7 < fftSize_; j += 8)
     {
-        _mm256_storeu_ps(&m_fftInputBuffer[j], zero_vec);
+        _mm256_storeu_ps(&fftInputBuffer_[j], zero_vec);
     }
 
     // Process remaining elements
-    for (; j < m_fftSize; ++j)
+    for (; j < fftSize_; ++j)
     {
-        m_fftInputBuffer[j] = 0.0f;
+        fftInputBuffer_[j] = 0.0f;
     }
 
 #endif // !defined(USE_AVX2)
@@ -498,26 +512,26 @@ void AudioAnalyzer::_zeroPadInputBuffer(const std::vector<std::int16_t>& chunk)
 }
 
 // Analyze FFT output (magnitude calculation for each frequency bin)
-std::vector<float> AudioAnalyzer::_magnitudesFromOutputBuffer() const
+std::vector<float> AudioAnalyzer::magnitudesFromOutputBuffer_() const
 {
-    std::vector<float> magnitudes(m_numFrequencyBins);
+    std::vector<float> magnitudes(numFrequencyBins_);
 
 #if !defined(USE_AVX2)
 
-    for (std::size_t k = 0; k < m_numFrequencyBins; ++k)
+    for (std::size_t k = 0; k < numFrequencyBins_; ++k)
     {
-        auto real = m_fftOutputBuffer[k][0];
-        auto imag = m_fftOutputBuffer[k][1];
+        auto real = fftOutputBuffer_[k][0];
+        auto imag = fftOutputBuffer_[k][1];
         magnitudes[k] = std::sqrt((real * real) + (imag * imag));
     }
 
 #else // defined(USE_AVX2)
 
     std::size_t k = 0;
-    for (; k + 7 < m_numFrequencyBins; k += 8)
+    for (; k + 7 < numFrequencyBins_; k += 8)
     {
-        auto real_vals = _mm256_loadu_ps(&m_fftOutputBuffer[k][0]);
-        auto imag_vals = _mm256_loadu_ps(&m_fftOutputBuffer[k][1]);
+        auto real_vals = _mm256_loadu_ps(&fftOutputBuffer_[k][0]);
+        auto imag_vals = _mm256_loadu_ps(&fftOutputBuffer_[k][1]);
 
         auto real_sq = _mm256_mul_ps(real_vals, real_vals);
         auto imag_sq = _mm256_mul_ps(imag_vals, imag_vals);
@@ -527,10 +541,10 @@ std::vector<float> AudioAnalyzer::_magnitudesFromOutputBuffer() const
     }
 
     // Process remaining elements
-    for (; k < m_numFrequencyBins; ++k)
+    for (; k < numFrequencyBins_; ++k)
     {
-        auto real = m_fftOutputBuffer[k][0];
-        auto imag = m_fftOutputBuffer[k][1];
+        auto real = fftOutputBuffer_[k][0];
+        auto imag = fftOutputBuffer_[k][1];
         magnitudes[k] = std::sqrt((real * real) + (imag * imag));
     }
 
@@ -539,7 +553,7 @@ std::vector<float> AudioAnalyzer::_magnitudesFromOutputBuffer() const
     return magnitudes;
 }
 
-bool AudioAnalyzer::_haveStatic(const std::vector<float>& magnitudes) const
+bool AudioAnalyzer::haveStatic_(const std::vector<float>& magnitudes) const
 {
     return std::all_of
     (
